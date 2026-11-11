@@ -1,0 +1,28 @@
+{
+  "name": "zixue-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tabler/icons-webfont": "^3.51.0",
+    "katex": "^0.16.19",
+    "markdown-it": "^14.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.7",
+    "@types/markdown-it": "^14.1.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3"
+  }
+}

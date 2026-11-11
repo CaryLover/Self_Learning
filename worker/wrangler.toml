@@ -1,0 +1,19 @@
+# 自学小站转发代理配置
+# 部署前请修改：
+#   1. name        —— 建议改成你自己的名字，如 "my-zixue-relay"
+#   2. [vars] ALLOWED_ORIGINS —— 强烈建议改成你的站点地址（逗号分隔），
+#      例如 "https://zixue.example.pages.dev,http://localhost:5173"
+#      留空或 "*" 表示不限制来源（任何网站都能借用你的代理额度，不推荐）
+
+name = "zixue-relay"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[vars]
+# 允许调用本代理的站点来源（逗号分隔）。留空或 "*" = 不限制。
+ALLOWED_ORIGINS = "https://zixue.oj-codes.com,https://zixue-xiaozhan.pages.dev,http://localhost:5173"
+# 允许转发到的厂商 API 域名（逗号分隔）。留空 = 使用内置 7 家预置清单。
+# 例："api.deepseek.com,api.siliconflow.cn,127.0.0.1:8791"
+ALLOWED_HOSTS = ""
+# 每 IP 每分钟最大请求数（简单限流，尽力而为）
+RATE_LIMIT_PER_MIN = "60"
