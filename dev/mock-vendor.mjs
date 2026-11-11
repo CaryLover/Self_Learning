@@ -5,7 +5,7 @@
  *   PORT=8791 node dev/mock-vendor.mjs
  *
  * 行为规则（按系统提示词内容自动切换角色）：
- *   - 系统提示含「画给孩子看」→ 返回 ```html 讲解页
+ *   - 系统提示含「画图讲解」→ 返回 ```html 讲解页
  *   - 系统提示含「巩固练习」 → 返回练习题 JSON
  *   - 系统提示含「苏格拉底」且消息含【结束本次学习】→ 返回 @@REPORT@@ JSON
  *   - 系统提示含「苏格拉底」 → 返回引导话术 + @@SKILLMAP@@ JSON（流式）
@@ -143,7 +143,7 @@ const server = http.createServer((req, res) => {
       if (recentRequests.length > 10) recentRequests.shift();
 
       let reply;
-      if (sys.includes("画给孩子看")) reply = "```html\n" + ELI5_HTML + "\n```";
+      if (sys.includes("画图讲解")) reply = "```html\n" + ELI5_HTML + "\n```";
       else if (sys.includes("巩固练习")) reply = "```json\n" + JSON.stringify(PRACTICES) + "\n```";
       else if (sys.includes("苏格拉底")) reply = socraticReply(history);
       else reply = "你好！我是模拟厂商。";

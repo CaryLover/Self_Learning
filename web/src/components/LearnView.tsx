@@ -7,12 +7,11 @@ import type { ChatMessage, ChatMsg, ContentPart, Grade, Mode, Session, Settings,
 import { MODE_LABEL, GRADE_LABEL } from "../lib/types";
 import { pickModel, resolveBase, visibleModels, type UiPrefs, type VisibleModel } from "../lib/store";
 import { chatRequest, ApiError } from "../lib/api";
-import { parseJsonLoose, splitProtocolBlock, extractHtmlDocument } from "../lib/extract";
+import { parseJsonLoose, splitProtocolBlock } from "../lib/extract";
 import { buildContext } from "../lib/context";
-import { htmlToText } from "../lib/markdown";
 import { uid } from "../lib/id";
-import { buildEli5ExplainMessages, buildEli5PracticeMessages } from "../prompts/eli5";
 import { ELI5_PROMPT_VERSION } from "../prompts/eli5Core";
+import { runEli5Pipeline } from "../lib/eli5Pipeline";
 import { buildSocraticSystem, buildEndSessionMessage } from "../prompts/socratic";
 import { dailyTip } from "../lib/encourage";
 import { effectiveVision, fileToDataUrl, MAX_IMAGES } from "../lib/vision";
@@ -302,80 +301,24 @@ export function LearnView(props: LearnViewProps) {
 
   async function runEli5(topic: string, s0: Session, images: string[] = []): Promise<void> {
     setBusy(true);
-    let s: Session = {
-      ...s0,
-      title: s0.title || topic.slice(0, 24),
-      eli5: { stage: "explaining", topic, promptVersion: ELI5_PROMPT_VERSION },
-    };
+    const ac = new AbortController();
+    abortRef.current = ac;
+    let timedOut = false;
+    const timer = window.setTimeout(() => { timedOut = true; ac.abort(); }, 180_000);
+    let s: Session = { ...s0, title: s0.title || topic.slice(0, 24), eli5: { stage: "explaining", topic, promptVersion: ELI5_PROMPT_VERSION } };
     commit(s);
     try {
-      // 第一段：讲解页（有图片时作为多模态内容一并发送）
-      let msgs: ChatMessage[] = buildEli5ExplainMessages(s.grade, topic, pctx);
-      if (images.length > 0) {
-        msgs = [
-          ...msgs,
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "这是孩子提供的题目/资料图片，请先读懂图片内容，再按要求讲解。" },
-              ...images.map((url): ContentPart => ({ type: "image_url", image_url: { url } })),
-            ],
-          },
-        ];
-      }
-      let raw = await call(msgs, false);
-      let html = extractHtmlDocument(raw);
-      if (!html) {
-        msgs = [
-          ...msgs,
-          { role: "assistant", content: raw },
-          {
-            role: "user",
-            content:
-              "你上一个回复不符合要求。请只输出一个完整 HTML 文档（用 ```html 围栏包裹，含 <!DOCTYPE html>），不要输出任何其他文字。",
-          },
-        ];
-        raw = await call(msgs, false);
-        html = extractHtmlDocument(raw);
-      }
-      if (!html) {
-        commit({ ...s, eli5: { ...s.eli5!, stage: "error", error: "讲解页生成失败，请重试或换个模型。" } });
-        return;
-      }
-      s = { ...s, eli5: { ...s.eli5!, html, stage: "practicing" } };
-      commit(s);
-
-      // 第二段：巩固练习
-      const digest = htmlToText(html).slice(0, 4000);
-      let pmsgs = buildEli5PracticeMessages(s.grade, topic, digest, pctx);
-      let praw = await call(pmsgs, false);
-      let items = parsePractices(praw);
-      if (!items) {
-        pmsgs = [
-          ...pmsgs,
-          { role: "assistant", content: praw },
-          {
-            role: "user",
-            content:
-              '你上一个回复不符合要求。请只输出一个 ```json 围栏，围栏内是 JSON 数组，每项包含 "question"、"difficulty"（"持平"/"进阶"/"培优"）、"answer"、"analysis"。不要输出其他任何文字。',
-          },
-        ];
-        praw = await call(pmsgs, false);
-        items = parsePractices(praw);
-      }
-      s = {
-        ...s,
-        eli5: {
-          ...s.eli5!,
-          practices: items ?? undefined,
-          stage: items ? "done" : "error",
-          error: items ? undefined : "练习生成失败，请重试或换个模型。",
-        },
-      };
-      commit(s);
+      await runEli5Pipeline({
+        grade: s.grade, topic, images, ctx: pctx, signal: ac.signal,
+        call: (messages, signal) => call(messages, false, signal),
+        update: (eli5) => { s = { ...s, eli5 }; commit(s); },
+      });
     } catch (e) {
-      commit({ ...s, eli5: { ...s.eli5!, stage: "error", error: friendlyError(e) } });
+      const error = ac.signal.aborted ? (timedOut ? "生成超时，请重试或换个模型。" : "已停止生成。") : friendlyError(e);
+      commit({ ...s, eli5: { ...s.eli5!, stage: "error", error } });
     } finally {
+      window.clearTimeout(timer);
+      if (abortRef.current === ac) abortRef.current = null;
       setBusy(false);
     }
   }
@@ -812,27 +755,6 @@ function normalizeMap(parsed: SkillMap): SkillMap {
 function avgLevel(skills: { level: number }[]): number {
   if (skills.length === 0) return 0;
   return skills.reduce((a, s) => a + s.level, 0) / skills.length;
-}
-
-function parsePractices(text: string): import("../lib/types").PracticeItem[] | null {
-  const arr = parseJsonLoose<unknown>(text);
-  if (!Array.isArray(arr) || arr.length === 0) return null;
-  const items: import("../lib/types").PracticeItem[] = [];
-  for (const it of arr) {
-    if (typeof it !== "object" || it === null) continue;
-    const o = it as Record<string, unknown>;
-    const q = typeof o.question === "string" ? o.question.trim() : "";
-    if (!q) continue;
-    const diff =
-      o.difficulty === "进阶" || o.difficulty === "培优" ? o.difficulty : ("持平" as const);
-    items.push({
-      question: q,
-      difficulty: diff,
-      answer: String(o.answer ?? "").trim(),
-      analysis: String(o.analysis ?? "").trim(),
-    });
-  }
-  return items.length ? items : null;
 }
 
 function friendlyError(e: unknown): string {
