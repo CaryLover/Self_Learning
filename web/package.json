@@ -9,7 +9,11 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test:eli5": "node tests/eli5Pipeline.test.mjs",
+    "test:eli5-view": "node tests/eli5View.test.mjs",
+    "test:proxy-settings": "node tests/proxySettings.test.mjs",
+    "test:grade-prompt": "node tests/gradePrompt.test.mjs",
     "test:physics": "node tests/physicsModel.test.mjs",
+    "test:person-board": "node tests/personBoard.test.mjs",
     "test:typst-probe": "node tests/typstProbe.mjs",
     "test:public-assets": "node tests/publicAssets.test.mjs",
     "test:packed-physics": "node tests/packedPhysics.test.mjs"

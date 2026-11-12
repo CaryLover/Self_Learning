@@ -88,6 +88,12 @@ function socraticReply(history) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
+  // 仅在本地模拟 /proxy 协议，始终由此服务响应，不访问目标地址。
+  let path = url.pathname;
+  if (path === "/proxy") {
+    try { path = new URL(url.searchParams.get("u") || "/", "http://localhost").pathname; }
+    catch { return json(res, 400, { error: { message: "bad target" } }); }
+  }
   if (req.method === "OPTIONS") {
     res.writeHead(204, CORS);
     res.end();
@@ -107,14 +113,14 @@ const server = http.createServer((req, res) => {
   const auth = req.headers.authorization ?? "";
   const hasKey = auth.startsWith("Bearer ") && auth.length > 10;
 
-  if (url.pathname.endsWith("/models")) {
+  if (path.endsWith("/models")) {
     if (!hasKey) return json(res, 401, { error: { message: "missing api key" } });
     return json(res, 200, {
       data: [{ id: "mock-chat-mini" }, { id: "mock-chat-plus" }, { id: "mock-vl-mini" }, { id: "mock-embed" }],
     });
   }
 
-  if (url.pathname.endsWith("/chat/completions") && req.method === "POST") {
+  if (path.endsWith("/chat/completions") && req.method === "POST") {
     let body = "";
     req.on("data", (c) => (body += c));
     req.on("end", async () => {
@@ -139,6 +145,7 @@ const server = http.createServer((req, res) => {
         messages: history.length,
         systemMentionsImages: /关于图片|图片输入/.test(sys),
         stream: !!parsed.stream,
+        viaProxy: url.pathname === "/proxy",
       });
       if (recentRequests.length > 10) recentRequests.shift();
 

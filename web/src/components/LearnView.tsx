@@ -11,7 +11,7 @@ import { parseJsonLoose, splitProtocolBlock } from "../lib/extract";
 import { buildContext } from "../lib/context";
 import { uid } from "../lib/id";
 import { ELI5_PROMPT_VERSION } from "../prompts/eli5Core";
-import { runEli5Pipeline } from "../lib/eli5Pipeline";
+import { runEli5Pipeline, runEli5Practice } from "../lib/eli5Pipeline";
 import { buildSocraticSystem, buildEndSessionMessage } from "../prompts/socratic";
 import { dailyTip } from "../lib/encourage";
 import { effectiveVision, fileToDataUrl, MAX_IMAGES } from "../lib/vision";
@@ -126,6 +126,7 @@ export function LearnView(props: LearnViewProps) {
       messages,
       stream,
       signal,
+      proxyUrl: settings.proxyUrl,
       onDelta: (t) => {
         streamRef.current += t;
         setStreamText(streamRef.current);
@@ -326,7 +327,7 @@ export function LearnView(props: LearnViewProps) {
         if (candidate.status === "needs_review") {
           s = { ...s, eli5: { ...s.eli5!, stage: "error", error: `物理测试需要复核：${candidate.reason}` } };
         } else {
-          s = { ...s, eli5: { ...s.eli5!, stage: "done", html: candidate.html, practices: candidate.practices, physicsPreview: { status: "candidate", modelVersion: "typed-physics:0.3.0", model: candidate.model, result: candidate.result, evidence: candidate.evidence, assumptions: candidate.assumptions } } };
+          s = { ...s, eli5: { ...s.eli5!, stage: "done", html: candidate.html, practices: candidate.practices, physicsPreview: { status: "candidate", modelVersion: candidate.model.kind === "person-board-rest" ? "person-board-static:1" : "typed-physics:0.3.0", model: candidate.model, result: candidate.result, evidence: candidate.evidence, assumptions: candidate.assumptions } } };
         }
         commit(s);
         return;
@@ -338,7 +339,37 @@ export function LearnView(props: LearnViewProps) {
       });
     } catch (e) {
       const error = ac.signal.aborted ? (timedOut ? "生成超时，请重试或换个模型。" : "已停止生成。") : friendlyError(e);
-      commit({ ...s, eli5: { ...s.eli5!, stage: "error", error } });
+      commit({ ...s, eli5: { ...s.eli5!, stage: "error", error, retryPractice: s.eli5?.stage === "practicing" && !!s.eli5.html } });
+    } finally {
+      window.clearTimeout(timer);
+      if (abortRef.current === ac) abortRef.current = null;
+      setBusy(false);
+    }
+  }
+
+  async function retryEli5Practice(): Promise<void> {
+    if (busy || !current?.eli5?.html || !current.eli5.topic || !current.eli5.retryPractice) return;
+    const source = [...current.messages].reverse().find(message => message.role === "user");
+    const originalImages = source?.images ?? [];
+    if (originalImages.length && !canVision) {
+      commit({ ...current, eli5: { ...current.eli5, error: "这道题包含图片，请先选择支持图片的模型，再重新生成练习。" } });
+      return;
+    }
+    setBusy(true);
+    const ac = new AbortController();
+    abortRef.current = ac;
+    let timedOut = false;
+    const timer = window.setTimeout(() => { timedOut = true; ac.abort(); }, 180_000);
+    let s = current;
+    try {
+      await runEli5Practice({
+        grade: s.grade, topic: current.eli5.topic, images: originalImages, ctx: pctx, signal: ac.signal,
+        initial: current.eli5, call: (messages, signal) => call(messages, false, signal),
+        update: eli5 => { s = { ...s, eli5 }; commit(s); },
+      });
+    } catch (error) {
+      const detail = ac.signal.aborted ? (timedOut ? "生成超时。" : "已停止生成。") : friendlyError(error);
+      commit({ ...s, eli5: { ...s.eli5!, stage: "error", retryPractice: true, error: `讲解已保留，练习未生成：${detail}` } });
     } finally {
       window.clearTimeout(timer);
       if (abortRef.current === ac) abortRef.current = null;
@@ -604,7 +635,7 @@ export function LearnView(props: LearnViewProps) {
           </div>
         ) : (
           <div className="chat-layout single">
-            <Eli5View eli5={current.eli5} />
+            <Eli5View eli5={current.eli5} busy={busy} onRetryPractice={() => void retryEli5Practice()} />
             {!current.eli5 || current.eli5.stage === "idle" ? (
               <div className="welcome">
                 <div className="welcome-emoji"><i className="ti ti-palette" aria-hidden="true"></i></div>

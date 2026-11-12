@@ -51,7 +51,9 @@ export function loadSettings(): Settings {
       profile: { ...base.profile, ...parsed.profile },
       providers: { ...base.providers },
       proxyUrl:
-        !parsed.proxyUrl?.trim() || parsed.proxyUrl.trim() === LEGACY_DEFAULT_PROXY
+        parsed.proxyExplicit && typeof parsed.proxyUrl === "string"
+          ? parsed.proxyUrl.trim()
+          : !parsed.proxyUrl?.trim() || parsed.proxyUrl.trim() === LEGACY_DEFAULT_PROXY
           ? base.proxyUrl // 旧存档为空或仍是旧默认地址 → 升级为当前默认
           : parsed.proxyUrl.trim(),
     };

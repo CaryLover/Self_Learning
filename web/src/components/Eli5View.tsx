@@ -5,12 +5,13 @@ import { PracticeCards } from "./PracticeCards";
 const STAGE_LABEL: Record<Eli5State["stage"], string | null> = {
   idle: null,
   explaining: "正在画讲解图…（约需几十秒）",
+  clarification: null,
   practicing: "正在生成巩固练习…",
   done: null,
   error: null,
 };
 
-export function Eli5View({ eli5 }: { eli5?: Eli5State }) {
+export function Eli5View({ eli5, busy, onRetryPractice }: { eli5?: Eli5State; busy: boolean; onRetryPractice: () => void }) {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
 
   function goFullscreen(): void {
@@ -32,12 +33,14 @@ export function Eli5View({ eli5 }: { eli5?: Eli5State }) {
           </div>
         </div>
       )}
+      {eli5?.stage === "clarification" && <div className="error-card">请根据讲解中的提示补充信息，然后重新发送完整题目；如有图片，请一并重新上传。</div>}
       {eli5?.stage === "done" && !!eli5.practices?.length && (
         <div className="done-banner">
           太棒了，讲解看完啦！下面几道小题试试手，看看学会了没有～
         </div>
       )}
       {eli5?.stage === "error" && eli5.error && <div className="error-card">😢 {eli5.error}</div>}
+      {eli5?.stage === "error" && eli5.retryPractice && <button className="btn" onClick={onRetryPractice} disabled={busy}>重新生成练习</button>}
       {eli5?.practices && <PracticeCards items={eli5.practices} />}
     </div>
   );

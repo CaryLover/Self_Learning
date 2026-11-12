@@ -7,10 +7,11 @@ import type { HangingModel } from "./hanging";
 import { buildInclinePractices, buildHangingPractices } from "./practice";
 import type { PracticeItem } from "../types";
 import { throwIfAborted } from "../abort";
+import { composePersonBoard, personBoardPractices, type PersonBoardModel, type PersonBoardResult } from "./personBoard";
 
-export type PhysicsModel = SmoothInclineModel | HangingModel;
+export type PhysicsModel = SmoothInclineModel | HangingModel | PersonBoardModel;
 export type PhysicsForce = { role: string; direction: [number, number] };
-export type PhysicsResult = { status: string; model: string; normal: number; acceleration: number; forces: PhysicsForce[] } | { status: string; model: string; tension: number; forces: PhysicsForce[] };
+export type PhysicsResult = { status: string; model: string; normal: number; acceleration: number; forces: PhysicsForce[] } | { status: string; model: string; tension: number; forces: PhysicsForce[] } | PersonBoardResult;
 export interface PhysicsRendering {
   svg: string;
   result: PhysicsResult;
@@ -38,7 +39,7 @@ export async function preparePhysicsLesson(options: {
   const rendered = await options.render(extraction.model);
   throwIfAborted(options.signal);
   // 模板再次按提取结果检查返回值，不能依赖渲染器声称通过。
-  const html = extraction.model.kind === "hanging-at-rest" ? composeHangingLesson(extraction.model, rendered.result, rendered.svg) : composeInclineLesson(extraction.model, rendered.result, rendered.svg);
-  const practices = extraction.model.kind === "hanging-at-rest" ? buildHangingPractices(extraction.model, rendered.result) : buildInclinePractices(extraction.model, rendered.result);
+  const html = extraction.model.kind === "person-board-rest" ? composePersonBoard(extraction.model, rendered.result as PersonBoardResult) : extraction.model.kind === "hanging-at-rest" ? composeHangingLesson(extraction.model, rendered.result, rendered.svg) : composeInclineLesson(extraction.model, rendered.result, rendered.svg);
+  const practices = extraction.model.kind === "person-board-rest" ? personBoardPractices(extraction.model, rendered.result as PersonBoardResult) : extraction.model.kind === "hanging-at-rest" ? buildHangingPractices(extraction.model, rendered.result) : buildInclinePractices(extraction.model, rendered.result);
   return { status: "candidate", html, practices, model: extraction.model, result: rendered.result, evidence: extraction.evidence, assumptions: extraction.assumptions };
 }

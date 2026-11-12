@@ -201,7 +201,7 @@ export function SettingsView({
                 type="text"
                 placeholder="https://relay.你的子域名.workers.dev"
                 value={settings.proxyUrl}
-                onChange={(e) => onChange({ ...settings, proxyUrl: e.target.value })}
+                  onChange={(e) => onChange({ ...settings, proxyUrl: e.target.value, proxyExplicit: true })}
               />
               <button
                 className="btn"

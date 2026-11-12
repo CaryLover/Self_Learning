@@ -32,6 +32,7 @@ export interface Settings {
     gradeLevel?: string; // 当前年级：一年级…六年级 / 初一…初三 / 高一…高三
   };
   proxyUrl: string;
+  proxyExplicit?: boolean; // 区分用户主动直连与旧版本未配置代理的存档
   providers: Record<string, ProviderState>; // key = provider preset id
 }
 
@@ -69,7 +70,7 @@ export interface MasteryReport {
   generatedAt: number;
 }
 
-export type Eli5Stage = "idle" | "explaining" | "practicing" | "done" | "error";
+export type Eli5Stage = "idle" | "explaining" | "clarification" | "practicing" | "done" | "error";
 
 export interface Eli5State {
   topic?: string;
@@ -77,6 +78,7 @@ export interface Eli5State {
   physicsPreview?: { status: "candidate"; modelVersion: string; model: PhysicsModel; result: PhysicsResult; evidence: Record<string, string>; assumptions: string[] };
   html?: string; // 模型生成的讲解页（沙箱 iframe 渲染）
   practices?: PracticeItem[];
+  retryPractice?: boolean;
   stage: Eli5Stage;
   error?: string;
 }
