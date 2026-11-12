@@ -143,7 +143,15 @@ const server = http.createServer((req, res) => {
       if (recentRequests.length > 10) recentRequests.shift();
 
       let reply;
-      if (sys.includes("画图讲解")) reply = "```html\n" + ELI5_HTML + "\n```";
+      if (sys.includes("提取题目中的单物体光滑固定斜面模型")) {
+        const question = history.findLast(m => m.role === "user")?.content ?? "";
+        const excerpts = { massKg: "质量4 kg", angleDeg: "30°", gravity: "9.81", surface: "固定光滑斜面", extraForces: "只受重力和支持力" };
+        const candidate = typeof question === "string" && Object.values(excerpts).every(e => question.includes(e));
+        const hangingEvidence = { massKg: "质量2 kg", gravity: "10", motion: "悬挂并静止", rope: "固定、竖直绷紧的绳", extraForces: "只受重力和绳的拉力" };
+        const hanging = typeof question === "string" && Object.values(hangingEvidence).every(e => question.includes(e));
+        reply = JSON.stringify(candidate ? { status: "candidate", evidence: excerpts, model: { kind: "smooth-incline", objectName: "A", massKg: { value: 4, source: "stated" }, angleDeg: { value: 30, source: "stated" }, gravity: { value: 9.81, source: "stated" }, surface: { value: "fixed-smooth", source: "stated" }, extraForces: { value: "none", source: "stated" }, requested: ["forces", "normal", "acceleration"] } } : hanging ? { status: "candidate", evidence: hangingEvidence, model: { kind: "hanging-at-rest", objectName: "B", massKg: { value: 2, source: "stated" }, gravity: { value: 10, source: "stated" }, motion: { value: "rest", source: "stated" }, rope: { value: "vertical-taut-fixed", source: "stated" }, extraForces: { value: "none", source: "stated" }, requested: ["forces", "tension"] } } : { status: "needs_review" });
+      }
+      else if (sys.includes("画图讲解")) reply = "```html\n" + ELI5_HTML + "\n```";
       else if (sys.includes("巩固练习")) reply = "```json\n" + JSON.stringify(PRACTICES) + "\n```";
       else if (sys.includes("苏格拉底")) reply = socraticReply(history);
       else reply = "你好！我是模拟厂商。";

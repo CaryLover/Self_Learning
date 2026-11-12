@@ -3,6 +3,7 @@ import { extractHtmlDocument, parseJsonLoose } from "./extract";
 import { htmlToText } from "./markdown";
 import { buildEli5ExplainMessages, buildEli5PracticeMessages, type PromptCtx } from "../prompts/eli5";
 import { ELI5_PROMPT_VERSION } from "../prompts/eli5Core";
+import { throwIfAborted } from "./abort";
 
 // 这是输出协议检查，不是知识正确性、布局或安全性的证明；iframe 沙箱仍是隔离边界。
 export function checkEli5Html(html: string | null): string | null {
@@ -25,7 +26,7 @@ export async function runEli5Pipeline(options: {
 }): Promise<void> {
   const { grade, topic, images, ctx, signal, call, update } = options;
   let state: Eli5State = { stage: "explaining", topic, promptVersion: ELI5_PROMPT_VERSION };
-  const save = (patch: Partial<Eli5State>) => { signal.throwIfAborted(); state = { ...state, ...patch }; update(state); };
+  const save = (patch: Partial<Eli5State>) => { throwIfAborted(signal); state = { ...state, ...patch }; update(state); };
   let msgs: ChatMessage[] = buildEli5ExplainMessages(grade, topic, ctx);
   if (images.length) msgs = [...msgs, { role: "user", content: [{ type: "text", text: "这是孩子提供的题目/资料图片，请先读懂图片内容，再按要求讲解。" }, ...images.map((url): ContentPart => ({ type: "image_url", image_url: { url } }))] }];
   let raw = await call(msgs, signal);

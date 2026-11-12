@@ -308,6 +308,29 @@ export function LearnView(props: LearnViewProps) {
     let s: Session = { ...s0, title: s0.title || topic.slice(0, 24), eli5: { stage: "explaining", topic, promptVersion: ELI5_PROMPT_VERSION } };
     commit(s);
     try {
+      // 开发环境的显式测试入口；未经题库评测与人工审核，不对正式版开放。
+      if (import.meta.env.DEV && topic.startsWith("【物理测试】")) {
+        if (s.grade !== "senior") {
+          commit({ ...s, eli5: { ...s.eli5!, stage: "error", error: "物理测试原型暂时只支持高中学段。" } });
+          return;
+        }
+        const [{ preparePhysicsLesson }, { renderPhysicsInWorker }] = await Promise.all([
+          import("../lib/physics/pipeline"), import("../lib/physics/workerClient"),
+        ]);
+        const request = topic.slice("【物理测试】".length).trim();
+        const candidate = await preparePhysicsLesson({
+          topic: request, hasImages: images.length > 0, signal: ac.signal,
+          call: (messages, signal) => call(messages, false, signal),
+          render: (model) => renderPhysicsInWorker(model, ac.signal),
+        });
+        if (candidate.status === "needs_review") {
+          s = { ...s, eli5: { ...s.eli5!, stage: "error", error: `物理测试需要复核：${candidate.reason}` } };
+        } else {
+          s = { ...s, eli5: { ...s.eli5!, stage: "done", html: candidate.html, practices: candidate.practices, physicsPreview: { status: "candidate", modelVersion: "typed-physics:0.3.0", model: candidate.model, result: candidate.result, evidence: candidate.evidence, assumptions: candidate.assumptions } } };
+        }
+        commit(s);
+        return;
+      }
       await runEli5Pipeline({
         grade: s.grade, topic, images, ctx: pctx, signal: ac.signal,
         call: (messages, signal) => call(messages, false, signal),

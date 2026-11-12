@@ -8,9 +8,16 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test:eli5": "node tests/eli5Pipeline.test.mjs"
+    "test:eli5": "node tests/eli5Pipeline.test.mjs",
+    "test:physics": "node tests/physicsModel.test.mjs",
+    "test:typst-probe": "node tests/typstProbe.mjs",
+    "test:public-assets": "node tests/publicAssets.test.mjs",
+    "test:packed-physics": "node tests/packedPhysics.test.mjs"
   },
   "dependencies": {
+    "@myriaddreamin/typst-ts-renderer": "0.7.0",
+    "@myriaddreamin/typst-ts-web-compiler": "0.7.0",
+    "@myriaddreamin/typst.ts": "0.7.0",
     "@tabler/icons-webfont": "^3.51.0",
     "katex": "^0.16.19",
     "markdown-it": "^14.1.0",

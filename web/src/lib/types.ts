@@ -1,4 +1,5 @@
 /** 全局类型定义 */
+import type { PhysicsModel, PhysicsResult } from "./physics/pipeline";
 
 export type Grade = "primary" | "junior" | "senior";
 export type Mode = "eli5" | "socratic";
@@ -73,6 +74,7 @@ export type Eli5Stage = "idle" | "explaining" | "practicing" | "done" | "error";
 export interface Eli5State {
   topic?: string;
   promptVersion?: string; // 旧会话没有该字段
+  physicsPreview?: { status: "candidate"; modelVersion: string; model: PhysicsModel; result: PhysicsResult; evidence: Record<string, string>; assumptions: string[] };
   html?: string; // 模型生成的讲解页（沙箱 iframe 渲染）
   practices?: PracticeItem[];
   stage: Eli5Stage;
