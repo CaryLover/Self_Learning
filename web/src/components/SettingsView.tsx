@@ -7,7 +7,7 @@ import { useState } from "react";
 import type { Grade, ProviderState, Settings } from "../lib/types";
 import { PROVIDER_PRESETS, type ProviderPreset } from "../lib/providers";
 import { fetchModelList, testProxy } from "../lib/api";
-import { resolveBase, visibleModels } from "../lib/store";
+import { resolveBase, visibleModels, type ThemePref } from "../lib/store";
 import { effectiveVision } from "../lib/vision";
 import { GRADE_LEVELS } from "../lib/grade";
 
@@ -17,12 +17,16 @@ export function SettingsView({
   settings,
   grade,
   onGradeChange,
+  theme,
+  onThemeChange,
   onChange,
   goLearn,
 }: {
   settings: Settings;
   grade: Grade;
   onGradeChange: (g: Grade) => void;
+  theme: ThemePref;
+  onThemeChange: (t: ThemePref) => void;
   onChange: (s: Settings) => void;
   goLearn: () => void;
 }) {
@@ -128,6 +132,19 @@ export function SettingsView({
         <p className="hint">
           讲题方法按所选学段与年级的课程范围约束，避免超纲。
         </p>
+
+        <label className="unit-field-label" htmlFor="theme-select">外观</label>
+        <select
+          id="theme-select"
+          value={theme}
+          onChange={(event) => onThemeChange(event.target.value as ThemePref)}
+          aria-label="外观"
+        >
+          <option value="light">浅色</option>
+          <option value="dark">深色</option>
+          <option value="system">跟随系统</option>
+        </select>
+        <p className="hint">深色模式保留三学段配色；讲解页仍按生成内容显示。</p>
       </section>
 
       {/* ---- 单元二：系统设置（大模型厂商与 API） ---- */}

@@ -16,9 +16,12 @@ export const DEFAULT_PROXY_URL =
 
 const LEGACY_DEFAULT_PROXY = "https://zixue-relay.lukasaoka2018.workers.dev";
 
+export type ThemePref = "light" | "dark" | "system";
+
 export interface UiPrefs {
   grade: Grade;
   mode: Mode;
+  theme: ThemePref;
 }
 
 export function defaultSettings(): Settings {
@@ -99,12 +102,13 @@ export function loadUiPrefs(): UiPrefs {
       const parsed = JSON.parse(raw) as Partial<UiPrefs> | null;
       const grade = parsed?.grade === "primary" || parsed?.grade === "junior" || parsed?.grade === "senior" ? parsed.grade : "primary";
       const mode = parsed?.mode === "eli5" || parsed?.mode === "socratic" ? parsed.mode : "eli5";
-      return { grade, mode };
+      const theme = parsed?.theme === "dark" || parsed?.theme === "system" ? parsed.theme : "light";
+      return { grade, mode, theme };
     }
   } catch {
     /* 忽略 */
   }
-  return { grade: "primary", mode: "eli5" };
+  return { grade: "primary", mode: "eli5", theme: "light" };
 }
 
 export function saveUiPrefs(p: UiPrefs): boolean {

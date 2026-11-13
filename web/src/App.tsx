@@ -26,6 +26,14 @@ export default function App() {
   const [onboardMode, setOnboardMode] = useState<OnboardMode>("startup");
   // 本机存储写入失败（隐私模式、配额、策略限制）时提示，避免误以为已保存
   const [storageWarn, setStorageWarn] = useState(false);
+  // 跟随系统外观时，监听系统深浅色变化
+  const [systemDark, setSystemDark] = useState(() => {
+    try {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    } catch {
+      return false;
+    }
+  });
 
   // 路由（hash）
   useEffect(() => {
@@ -38,6 +46,20 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.grade = prefs.grade;
   }, [prefs.grade]);
+
+  const dark = prefs.theme === "dark" || (prefs.theme !== "light" && systemDark);
+  useEffect(() => {
+    const media = window.matchMedia?.("(prefers-color-scheme: dark)");
+    if (!media) return;
+    const onChange = (event: MediaQueryListEvent) => setSystemDark(event.matches);
+    media.addEventListener?.("change", onChange);
+    return () => media.removeEventListener?.("change", onChange);
+  }, []);
+
+  // 外观：浅色 / 深色 / 跟随系统
+  useEffect(() => {
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+  }, [dark]);
 
   // 会话列表
   useEffect(() => {
@@ -179,6 +201,8 @@ export default function App() {
           settings={settings}
           grade={prefs.grade}
           onGradeChange={(grade) => onChangePrefs({ ...prefs, grade })}
+          theme={prefs.theme}
+          onThemeChange={(theme) => onChangePrefs({ ...prefs, theme })}
           onChange={onChangeSettings}
           goLearn={() => goPage("learn")}
         />

@@ -33,6 +33,17 @@
   --shadow: none;
   --shadow-lg: none;
   --pattern: none;
+  --surface-2: #f4f4f5;
+  --surface-3: #333;
+  --danger-soft: #fff3f0;
+  --danger-soft-2: #ffe3dc;
+  --warm-soft: #fff8ec;
+  --warm-sidebar: #fff3e2;
+  --ok-soft: #e9f6f1;
+  --teal-ink: #147a6d;
+  --warn-ink: #7a5200;
+  --bad-ink: #a92f1c;
+  --on-accent: #ffffff;
 }
 
 /* ---------------- 三学段主题 ---------------- */
@@ -115,6 +126,87 @@ html[data-grade="senior"] {
   --shadow: none;
   --shadow-lg: none;
   --pattern: none;
+}
+
+/* ---------------- 深色模式：保留三学段人格，仅替换明暗 ---------------- */
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #121316;
+  --card: #1b1c20;
+  --ink: #e8e8ec;
+  --ink-2: #a2a2ac;
+  --line: #2d2e33;
+  --line-2: #3b3c43;
+  --accent-soft: #282930;
+  --marker-soft: #37322a;
+  --surface-2: #26272c;
+  --surface-3: #2a2a2e;
+  --danger-soft: #3a211d;
+  --danger-soft-2: #46241f;
+  --warm-soft: #2b2219;
+  --warm-sidebar: #241d16;
+  --ok-soft: #16241f;
+  --teal-ink: #6fe0cc;
+  --warn-ink: #e2b25e;
+  --bad-ink: #ff9b85;
+  --on-accent: #101114;
+}
+
+html[data-theme="dark"][data-grade="primary"] {
+  --paper: #171310;
+  --card: #211c17;
+  --ink: #f1e9df;
+  --ink-2: #b9a890;
+  --line: #3a3027;
+  --line-2: #4a3d30;
+  --accent: #ffb083;
+  --accent-ink: #ffc4a1;
+  --accent-soft: #3a2a20;
+  --accent-2: #5fe3c0;
+  --accent-2-soft: #173a35;
+  --marker: #ffd24a;
+  --marker-soft: #3a3320;
+  --on-accent: #1a120d;
+  --bad: #e5533d;
+  --ok: #4fd6a7;
+  --warn: #e2b25e;
+}
+
+html[data-theme="dark"][data-grade="junior"] {
+  --paper: #101715;
+  --card: #18211e;
+  --ink: #e6f2ed;
+  --ink-2: #a3b8b1;
+  --line: #283631;
+  --line-2: #35463f;
+  --accent: #5fe3c0;
+  --accent-ink: #8df0d6;
+  --accent-soft: #17332b;
+  --marker: #ffd24a;
+  --marker-soft: #3a3320;
+  --on-accent: #062420;
+  --bad: #e5533d;
+  --ok: #4fd6a7;
+  --warn: #e2b25e;
+}
+
+html[data-theme="dark"][data-grade="senior"] {
+  --paper: #111113;
+  --card: #1a1a1d;
+  --ink: #ececef;
+  --ink-2: #a1a1aa;
+  --line: #2b2b2f;
+  --line-2: #3a3a40;
+  --accent: #e6e6e9;
+  --accent-ink: #ffffff;
+  --accent-soft: #26262a;
+  --marker: #4a4a50;
+  --marker-soft: #26262a;
+  --on-accent: #111113;
+  --bad: #c2412b;
+  --ok: #4fd6a7;
+  --warn: #e2b25e;
 }
 
 /* ---------------- 基础 ---------------- */
@@ -297,7 +389,7 @@ html[data-grade="junior"] .chip-avatar {
 }
 
 html[data-grade="senior"] .chip-avatar {
-  background: #f4f4f5;
+  background: var(--surface-2);
   border: 1px solid var(--line-2);
 }
 
@@ -429,17 +521,17 @@ html[data-grade="senior"] .btn-link {
 }
 
 html[data-grade="primary"] .sidebar {
-  background: #fff3e2;
-  border-right: 1px dashed #e8d3b0;
+  background: var(--warm-sidebar);
+  border-right: 1px dashed var(--line-2);
 }
 
 html[data-grade="junior"] .sidebar {
-  background: #e9f6f1;
+  background: var(--ok-soft);
   border-right: 1px solid var(--line);
 }
 
 html[data-grade="senior"] .sidebar {
-  background: #ffffff;
+  background: var(--card);
   border-right: 1px solid var(--line);
 }
 
@@ -504,7 +596,7 @@ html[data-grade="senior"] .seg-group {
 }
 
 .seg.active {
-  color: #fff;
+  color: var(--on-accent);
 }
 
 html[data-grade="primary"] .seg.active {
@@ -529,7 +621,7 @@ html[data-grade="senior"] .seg.active {
   font-weight: 500;
   letter-spacing: 0.02em;
   border-radius: var(--radius-sm);
-  color: #fff;
+  color: var(--on-accent);
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 
@@ -563,7 +655,7 @@ html[data-grade="junior"] .btn-new:hover:not(:disabled) {
 }
 
 html[data-grade="senior"] .btn-new:hover:not(:disabled) {
-  background: #333;
+  background: var(--surface-3);
 }
 
 .btn-new:active:not(:disabled) {
@@ -636,7 +728,7 @@ html[data-grade="junior"] .session-item:hover {
 html[data-grade="primary"] .session-item.active {
   border-color: var(--accent-2);
   border-left-color: var(--accent);
-  background: #fff8ec;
+  background: var(--warm-soft);
   box-shadow: var(--shadow-sm);
 }
 
@@ -648,7 +740,7 @@ html[data-grade="junior"] .session-item.active {
 
 html[data-grade="senior"] .session-item.active {
   border-color: var(--ink);
-  background: #f5f5f5;
+  background: var(--surface-2);
 }
 
 .session-open {
@@ -783,7 +875,7 @@ html[data-grade="senior"] .mode-chip {
   padding: 10px 14px;
   font-size: 0.88em;
   border-radius: var(--radius-sm);
-  background: #fff2ef;
+  background: var(--danger-soft);
   border: 1px solid var(--bad);
   border-left-width: 4px;
 }
@@ -1077,7 +1169,7 @@ html[data-grade="senior"] .bubble.assistant {
 }
 
 .bubble.user {
-  color: #fff;
+  color: var(--on-accent);
   border-bottom-right-radius: 5px;
 }
 
@@ -1101,7 +1193,7 @@ html[data-grade="senior"] .bubble.user {
 .bubble.error {
   white-space: pre-wrap;
   color: var(--ink);
-  background: #fff3f0;
+  background: var(--danger-soft);
   border-color: var(--bad);
   border-left-width: 4px;
   border-left-color: var(--bad);
@@ -1178,7 +1270,7 @@ html[data-grade="junior"] .sticker {
 }
 
 html[data-grade="senior"] .sticker {
-  background: #f4f4f5;
+  background: var(--surface-2);
   border: 1px solid var(--line);
   transform: none;
 }
@@ -1195,7 +1287,7 @@ html[data-grade="senior"] .sticker {
 .error-card {
   padding: 12px 15px;
   white-space: pre-wrap;
-  background: #fff3f0;
+  background: var(--danger-soft);
   border: 1px solid var(--bad);
   border-left-width: 4px;
   border-radius: var(--radius-sm);
@@ -1424,7 +1516,7 @@ html[data-grade="junior"] .sk-overall {
 }
 
 html[data-grade="senior"] .sk-overall {
-  background: #f4f4f5;
+  background: var(--surface-2);
   border: 1px solid var(--line);
 }
 
@@ -1463,7 +1555,7 @@ html[data-grade="junior"] .skillmap li.focus {
 }
 
 html[data-grade="senior"] .skillmap li.focus {
-  background: #f4f4f5;
+  background: var(--surface-2);
   border-color: var(--ink);
 }
 
@@ -1537,7 +1629,7 @@ html[data-grade="senior"] .sk-seg.on {
 }
 
 html[data-grade="primary"] .btn-end {
-  color: #147a6d;
+  color: var(--teal-ink);
   background: var(--accent-2-soft);
   border: 1px solid var(--accent-2);
   box-shadow: var(--shadow-sm);
@@ -1572,7 +1664,7 @@ html[data-grade="senior"] .btn-end {
 }
 
 html[data-grade="primary"] .skillmap-empty {
-  background: #fff8ec;
+  background: var(--warm-soft);
   border: 1px dashed var(--line-2);
 }
 
@@ -1788,7 +1880,7 @@ html[data-grade="junior"] .eli5-stage {
 }
 
 html[data-grade="senior"] .eli5-stage {
-  background: #f4f4f5;
+  background: var(--surface-2);
   border: 1px solid var(--line);
 }
 
@@ -1801,7 +1893,7 @@ html[data-grade="senior"] .eli5-stage {
 .explain-frame {
   width: 100%;
   height: min(72vh, 720px);
-  background: #fff;
+  background: var(--card);
   border-radius: var(--radius);
 }
 
@@ -1928,17 +2020,17 @@ html[data-grade="senior"] .diff {
 
 html[data-grade="primary"] .diff-持平 {
   background: var(--accent-2-soft);
-  color: #147a6d;
+  color: var(--teal-ink);
 }
 
 .diff-进阶 {
   background: var(--marker-soft);
-  color: #7a5200;
+  color: var(--warn-ink);
 }
 
 .diff-培优 {
-  background: #ffe3dc;
-  color: #a92f1c;
+  background: var(--danger-soft-2);
+  color: var(--bad-ink);
 }
 
 .practice-q .md {
@@ -2158,7 +2250,7 @@ html[data-grade="senior"] .icon-btn {
 }
 
 html[data-grade="senior"] .icon-btn:hover {
-  background: #f4f4f5;
+  background: var(--surface-2);
   border-color: var(--ink-2);
 }
 
@@ -2179,7 +2271,7 @@ html[data-grade="senior"] .icon-btn:hover {
   font-size: 0.9em;
   font-weight: 500;
   white-space: nowrap;
-  color: #fff;
+  color: var(--on-accent);
   border-radius: 6px;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
@@ -2218,6 +2310,7 @@ html[data-grade="senior"] .btn-send {
 .btn-send.stop {
   background: var(--bad);
   border-color: color-mix(in srgb, var(--bad) 70%, #000);
+  color: #fff;
 }
 
 /* ---------------- 通用按钮 / 表单 ---------------- */
@@ -2276,7 +2369,7 @@ html[data-grade="junior"] .btn:hover:not(:disabled) {
 }
 
 .btn.danger:hover:not(:disabled) {
-  background: #fff3f0;
+  background: var(--danger-soft);
 }
 
 .row {
@@ -2371,7 +2464,7 @@ html[data-grade="junior"] .notice {
 }
 
 html[data-grade="senior"] .notice {
-  background: #f4f4f5;
+  background: var(--surface-2);
   border: 1px solid var(--line);
 }
 
@@ -2514,7 +2607,7 @@ html[data-grade="senior"] .avatar {
 
 html[data-grade="senior"] .avatar.on {
   border-color: var(--ink);
-  background: #f4f4f5;
+  background: var(--surface-2);
 }
 
 .avatar:hover {
@@ -2938,7 +3031,7 @@ html[data-grade="senior"] .onboard-emoji {
 
 .onboard input[type="text"].invalid {
   border-color: var(--bad);
-  box-shadow: 0 0 0 3px #ffe3dc;
+  box-shadow: 0 0 0 3px var(--danger-soft-2);
 }
 
 .req {
@@ -2965,7 +3058,7 @@ html[data-grade="senior"] .onboard-emoji {
   font-size: 0.85em;
   font-weight: 500;
   color: var(--bad);
-  background: #fff3f0;
+  background: var(--danger-soft);
   border: 1px solid var(--bad);
   border-radius: var(--radius-sm);
 }
@@ -3008,7 +3101,7 @@ html[data-grade="junior"] .grade-card.on {
 }
 
 html[data-grade="senior"] .grade-card.on {
-  background: #f4f4f5;
+  background: var(--surface-2);
   border-color: var(--ink);
 }
 
@@ -3046,7 +3139,7 @@ html[data-grade="primary"] .level-chip {
 html[data-grade="primary"] .level-chip.on {
   background: var(--accent);
   border-color: var(--accent-ink);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 html[data-grade="junior"] .level-chip {
@@ -3056,7 +3149,7 @@ html[data-grade="junior"] .level-chip {
 html[data-grade="junior"] .level-chip.on {
   background: var(--accent);
   border-color: var(--accent-ink);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 html[data-grade="senior"] .level-chip {
@@ -3067,7 +3160,7 @@ html[data-grade="senior"] .level-chip {
 html[data-grade="senior"] .level-chip.on {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .level-chip:hover {
@@ -3244,6 +3337,27 @@ html[data-grade="senior"] .level-chip.on {
   .grade-desc {
     text-align: left;
   }
+}
+
+/* ---------------- 深色模式下的少量硬编码边框 ---------------- */
+
+html[data-theme="dark"] .bubble-imgs img {
+  border-color: var(--line-2);
+}
+
+html[data-theme="dark"] .skillmap li.focus {
+  border-color: var(--line-2);
+}
+
+html[data-theme="dark"][data-grade="primary"] .sticker,
+html[data-theme="dark"][data-grade="primary"] .eli5-stage,
+html[data-theme="dark"][data-grade="primary"] .sk-overall,
+html[data-theme="dark"][data-grade="primary"] .diff {
+  border-color: var(--line-2);
+}
+
+html[data-theme="dark"][data-grade="primary"] .steps span {
+  box-shadow: none;
 }
 
 /* ---------------- 减少动态效果 ---------------- */

@@ -15,9 +15,11 @@ try {
   const { loadSettings, saveSettings, loadUiPrefs, saveUiPrefs, DEFAULT_PROXY_URL } = await import(pathToFileURL(outfile).href);
   assert.equal(loadSettings().proxyUrl, DEFAULT_PROXY_URL);
   storage.set('zxz.ui.v1', JSON.stringify({ grade: 'college', mode: 'unknown' }));
-  assert.deepEqual(loadUiPrefs(), { grade: 'primary', mode: 'eli5' });
+  assert.deepEqual(loadUiPrefs(), { grade: 'primary', mode: 'eli5', theme: 'light' });
   storage.set('zxz.ui.v1', JSON.stringify({ grade: 'senior', mode: 'socratic' }));
-  assert.deepEqual(loadUiPrefs(), { grade: 'senior', mode: 'socratic' });
+  assert.deepEqual(loadUiPrefs(), { grade: 'senior', mode: 'socratic', theme: 'light' });
+  assert.equal(saveUiPrefs({ grade: 'senior', mode: 'socratic', theme: 'dark' }), true);
+  assert.deepEqual(loadUiPrefs(), { grade: 'senior', mode: 'socratic', theme: 'dark' });
   saveSettings({ ...loadSettings(), proxyUrl: '', proxyExplicit: true });
   assert.equal(loadSettings().proxyUrl, '');
   saveSettings({ ...loadSettings(), proxyUrl: 'http://127.0.0.1:8787', proxyExplicit: true });
@@ -27,10 +29,10 @@ try {
   saveSettings(old);
   assert.equal(loadSettings().proxyUrl, DEFAULT_PROXY_URL);
   assert.equal(saveSettings(loadSettings()), true);
-  assert.equal(saveUiPrefs({ grade: 'primary', mode: 'eli5' }), true);
+  assert.equal(saveUiPrefs({ grade: 'primary', mode: 'eli5', theme: 'light' }), true);
   globalThis.localStorage = { getItem: () => null, setItem: () => { throw new Error('storage blocked'); }, removeItem: () => {} };
   assert.equal(saveSettings(loadSettings()), false);
-  assert.equal(saveUiPrefs({ grade: 'junior', mode: 'eli5' }), false);
+  assert.equal(saveUiPrefs({ grade: 'junior', mode: 'eli5', theme: 'light' }), false);
   console.log('proxy settings checks passed');
 } finally {
   await unlink(outfile).catch(() => {});

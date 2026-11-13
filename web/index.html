@@ -6,6 +6,14 @@
     <meta name="description" content="自学小站：K12 全科 AI 自学——ELI5 看图讲解 + 苏格拉底辅导，免费、无广告，API key 只存在家长自己的浏览器里。" />
     <title>自学小站</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>" />
+    <script>
+      try {
+        var prefs = JSON.parse(localStorage.getItem("zxz.ui.v1") || "{}");
+        var theme = prefs.theme || "light";
+        var dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      } catch (error) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
