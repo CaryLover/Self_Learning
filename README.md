@@ -51,6 +51,7 @@ SiliconFlow 卡片启用、地址改为 `http://127.0.0.1:8791/v1`、key 随便�
 - **代理转发**：项目提供的 Worker 转发授权头和请求内容；源码中的日志不记录密钥或对话正文。代理拒绝非本机目标的明文 HTTP，避免授权头明文传输；本地联调仍允许 127.0.0.1/localhost。自行配置其他代理或模型服务时，应了解其数据处理方式。
 - **防滥用**：Worker 校验 Origin 白名单；配置白名单后，缺少 Origin 的请求也会被拒绝；并提供基于单个运行实例内存的尽力限流。这些措施不能代替认证或全局限流。
 - **讲解页沙箱**：模型生成的 HTML 在禁用脚本的 `sandbox` iframe 中渲染，资源策略限制远程子资源加载。
+- **安全响应头**：Pages 通过 `_headers` 设置 `X-Content-Type-Options: nosniff`、`Referrer-Policy`、`X-Frame-Options: DENY` 和 HSTS，降低内容嗅探、点击劫持与降级风险。
 
 ## 厂商支持（7 家预置）
 

@@ -128,6 +128,7 @@
 
 - 保持现有厂商配置、API key 保存方式、模型选择和图片输入可用；不将密钥写入测试资料或日志。
 - 转发代理拒绝非本机目标的明文 HTTP，避免授权头经明文转发；本地联调仍允许 127.0.0.1/localhost。配置来源白名单时，缺少 Origin 的请求也会被拒绝。
+- Pages 通过 `_headers` 设置 `X-Content-Type-Options: nosniff`、`Referrer-Policy`、`X-Frame-Options: DENY` 和 HSTS；本地开发服务器不受这些响应头影响。
 - 保持苏格拉底模式行为及「不直接给答案」规则。
 - 保持三学段视觉规范和防超纲要求。
 - 保持 iframe 禁脚本，不为渲染物理图而放宽沙箱。

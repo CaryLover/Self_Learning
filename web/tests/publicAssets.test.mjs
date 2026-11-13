@@ -1,6 +1,6 @@
 import { build } from "esbuild";
 import { pathToFileURL } from "node:url";
-import { mkdtemp, unlink, rmdir, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, unlink, rmdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import assert from "node:assert/strict";
@@ -16,6 +16,11 @@ try {
   assert.ok(emitted.includes('physics-fonts/NewCMMath-Regular.otf'));
   assert.ok(emitted.includes('physics-packages/typed-physics-0.3.0.bin'));
   assert.ok(!emitted.some(name => name.startsWith('__probe_build/') || name.startsWith('__typst_probe/')));
+  assert.ok(emitted.includes('_headers'));
+  const headers = await readFile('public/_headers', 'utf8');
+  assert.match(headers, /X-Content-Type-Options: nosniff/);
+  assert.match(headers, /X-Frame-Options: DENY/);
+  assert.match(headers, /Strict-Transport-Security: max-age=31536000/);
   const lean = [];
   await releasePublicAssets(false).generateBundle.call({ emitFile: item => lean.push(item.fileName) });
   assert.ok(!lean.some(name => name.startsWith('physics-fonts/') || name.startsWith('physics-packages/')));
