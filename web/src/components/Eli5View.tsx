@@ -23,7 +23,7 @@ export function Eli5View({ eli5, busy, onRetryLesson, onRetryPractice, onSkipPra
   return (
     <div className="eli5">
       {eli5 && STAGE_LABEL[eli5.stage] && <div className="eli5-stage" role="status">{STAGE_LABEL[eli5.stage]}</div>}
-      {eli5?.physicsPreview && <div className="error-card">物理图仅供开发测试：题目理解、图形和讲解尚需人工审核。</div>}
+      {eli5?.physicsPreview && <div className="eli5-note" role="note">物理预览：题目理解、图形和讲解仍需人工审核；当前只覆盖有限题型。</div>}
       {eli5?.physicsUnverified && eli5.html && <div className="eli5-note" role="note">{eli5.physicsTextOnly ? "这道题没有经过物理工具核验：以下是模型文字讲解，请结合题目复核。" : "图文与计算由模型生成，请结合题目复核；如涉及物理内容，本次未使用物理工具核验。"}</div>}
       {eli5?.html && (
         <div className="explain-wrap">

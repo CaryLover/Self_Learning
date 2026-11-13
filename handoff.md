@@ -10,12 +10,12 @@
 - 不能声称网站的提示词会在运行时调用本机 ELI5 技能。项目是依据可见技能定义构造提示词与产品流程；不同模型和生成过程无法保证结果逐字相同。
 - 苏格拉底模式、各学科普通讲解、年级适配、图片输入和已有数据需要继续保留。不要擅自改变原有产品目标和视觉风格。
 - 用户要求连续自主开发：正常实现、检查和修复过程中不要反复停下来询问“下一步做什么”。只有确需用户作决定、授权或交互时才提问，并明确说出原因。用户已经表示不再反复手动验证已有物理模型；自动化测试可以继续，使用中出现问题由用户反馈。
-- 网站部署不因开发自动获得授权；2026-11-13 已按用户的明确指示部署默认构建和 Worker。物理融合预览仍未上线。
+- 网站部署不因开发自动获得授权；2026-11-13 已按用户的明确指示部署默认构建、Worker，并在当天稍后按用户明确指示上线物理预览。物理预览仍是有限支持范围，不能宣称覆盖全部物理题型。
 
 ### 2. 版本管理：先保护工作区
 
 - 2026-11-13 代码提交：`8aee16e 完善图片题条件核对与无障碍提示`；此前 `2f1cda9 完善跨学科图形选择与练习自包含`、`eafe784 加固会话恢复、存储与代理安全`、`747a6a8`。均位于分支 `eli5-physics-fusion`；`master` 仍停在 `969604b`，未自动合并。
-- 同日已按用户指示部署：前端 Pages 部署 `c4e5ad8c`（`https://c4e5ad8c.zixue-xiaozhan.pages.dev`），生产域 `zixue.oj-codes.com` / `zixue-xiaozhan.pages.dev`，主 bundle `index-DTKk0Auu.js`、CSS `index-CQ2cw51t.css`，按需加载 `PracticeCards-OcGl2j9F.js`、`Eli5View-BOZk4kDT.js`、`ChatView-BvRSIXn3.js`、`SettingsView-BcWoHjTI.js`，线上 ELI5 提示词版本 `2.6`；Pages `_headers` 已启用 nosniff、Referrer-Policy、`X-Frame-Options: DENY`、HSTS，以及 `/assets/*` 一年 immutable 缓存；KaTeX 已升级到 0.19.1，生产依赖审计 0 漏洞；Worker `zixue-relay` 本轮未改动，仍为 `2fcd4a44-c611-42ff-bee7-e7ecfea5f51a`。默认构建不包含物理 Worker、物理字体/包和压缩编译器；包含报告打印、顶栏深浅色开关、未作答报告评分兜底、“首次发送才创建最近学习记录”、键盘跳转/弹窗焦点/标签页方向键/流式回复 `aria-busy`、条件不足题的补充条件规则、损坏设置存档恢复，以及三学段低对比度修复和设置页开关/地标修复。
+- 同日已按用户指示部署：前端 Pages 部署 `a2e719a2`（`https://a2e719a2.zixue-xiaozhan.pages.dev`），生产域 `zixue.oj-codes.com` / `zixue-xiaozhan.pages.dev`，主 bundle `index-CR36pdbi.js`、CSS `index-CQ2cw51t.css`，按需加载 `PracticeCards-CJtfeemY.js`、`Eli5View-Bx35W1Gt.js`、`ChatView-CKwkSQ-c.js`、`SettingsView-3Sz1jHNb.js`，线上 ELI5 提示词版本 `2.6`；生产构建已启用 `VITE_ENABLE_PHYSICS=true`，包含压缩编译器约 10.84 MB、修改版 typed-physics 计算包约 94 KB 和物理 worker；不再包含 CeTZ、oxifmt、Typst 渲染器 WASM 或 NewCM 字体。Pages `_headers` 已启用 nosniff、Referrer-Policy、`X-Frame-Options: DENY`、HSTS，以及 `/assets/*` 一年 immutable 缓存；KaTeX 已升级到 0.19.1，生产依赖审计 0 漏洞；Worker `zixue-relay` 本轮未改动，仍为 `2fcd4a44-c611-42ff-bee7-e7ecfea5f51a`。物理预览提示已从“仅供开发测试”改为中性的“仍需人工审核；当前只覆盖有限题型”。
 - 记录部署的文档修改通常比代码提交晚一个提交；以 `git log -2 --oneline` 为准。
 - 先运行 `git status --short`、`git log -2 --oneline` 和 `git diff` 熟悉现状；还要检查 `git status` 中的 `??` 新文件，普通 `git diff` 不包含它们。若把项目交给其他环境，请确保完整携带所有已修改及未跟踪的项目源文件；忽略目录和敏感配置按需单独处理，勿把 API key 等秘密写入提交。
 - 当前环境可以写入 `.git`；继续提交时沿用项目的中文提交习惯，保留已有历史。提交前已扫描常见的硬编码密钥模式，未发现真实密钥；仍不要提交 `.env`、真实 API key 等。若要把成果合回 `master`，需由用户确认后再操作。
@@ -46,7 +46,7 @@
 
 2026-11-13 物理预览验收（本地 `VITE_ENABLE_PHYSICS=true`，使用者配置的真实模型）：斜面、悬挂（绳索修复后）、电路、人板静力均能生成并展示；人板三幅受力图在桌面和 390 宽度手机视口均无关键遮挡；缺角度进入待复核或错误提示，热传导走未核验文字退路，图片物理题按普通 ELI5 处理；初中斜面走文字退路、电路和悬挂可自动分流。该记录只覆盖实际操作的样例，不是独立题库正确率，也未覆盖 360 宽度、平板、其他浏览器、深色物理页和读屏朗读。物理预览仍未在线上启用，验收通过不自动等于上线授权。详细记录见 `docs/acceptance-checklist.md` 第 2.7 节。
 
-2026-11-13 物理上线前检查（CeTZ 已移除）：用 `VITE_ENABLE_PHYSICS=true` 构建到 `dev/physics-preview-build`（未部署），压缩编译器约 10.84 MB、计算包约 94 KB，总新增资源约 11 MB；不再包含 CeTZ、oxifmt、渲染器 WASM 或 NewCM 字体。修改版 typed-physics 仅保留 MIT 计算模块，斜面/悬挂/电路图由应用自绘 SVG；本地预览已实际生成三类图并核对数值。物理预览仍未上线，仍需生产物理冒烟、手机/读屏人工验收和用户明确授权。详见 `docs/physics-launch-checklist.md`。
+2026-11-13 物理预览上线（`a2e719a2`）：按用户明确指示用 `VITE_ENABLE_PHYSICS=true` 构建并部署，压缩编译器约 10.84 MB、计算包约 94 KB；不再包含 CeTZ、oxifmt、渲染器 WASM 或 NewCM 字体。修改版 typed-physics 仅保留 MIT 计算模块，斜面/悬挂/电路图由应用自绘 SVG。生产域冒烟已跑通斜面、悬挂、电路和热传导文字退路；390 宽度页面无横向溢出，电路页可打开。首次冷加载编译器曾出现一次“加载失败”，重试后成功，后续浏览器内下载约 4 秒；该首次失败已作为部署传播/冷启动风险记录。手机人工读屏和更完整视觉验收仍未完成。详见 `docs/physics-launch-checklist.md`。
 
 2026-11-13 已用使用者配置的真实 DeepSeek `deepseek-flash` 执行小规模评测：生产域完成 E01–E03、E08–E10、E13 等通用用例各 2 次；本地物理预览完成 E04 高中斜面、E06 悬挂各 2 次，E05 滑轮和 E07 热传导文字退路各 2 次；E04J 初中斜面文字退路 1 次；E12 条件不足在 2.5 下失败、提示词 2.6 本地复测 2 次均进入补充条件；部署 `96c8b2cc` 后线上复测 2 次也均为补充条件、0 道练习。E11 图片题补测 3 次：清晰图、缺条件图、轻模糊图均通过；缺条件图进入补充条件且 0 道练习，轻模糊图仍可辨认，不能代表严重模糊照片。详细结果和限制见 `docs/real-model-eval-results-2026-11-13.md`，用例见 `docs/real-model-eval-cases.md`（14 个）。这不是独立题库正确率认证，不能据此宣称 90%。
 
