@@ -757,6 +757,8 @@ export function LearnView(props: LearnViewProps) {
                 className={`seg${useMode === m ? " active" : ""}`}
                 onClick={() => switchMode(m)}
                 disabled={busy}
+                role="tab"
+                aria-selected={useMode === m}
               >
                 <span className="seg-icon">{m === "eli5" ? <i className="ti ti-palette" aria-hidden="true"></i> : <i className="ti ti-school" aria-hidden="true"></i>}</span>
                 <span>{MODE_LABEL[m]}</span>
@@ -872,6 +874,7 @@ export function LearnView(props: LearnViewProps) {
                   <button
                     className="thumb-x"
                     title="移除这张图片"
+                    aria-label={`移除第 ${i + 1} 张图片`}
                     onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
                   >
                     ×
@@ -889,6 +892,7 @@ export function LearnView(props: LearnViewProps) {
             <div className="composer-box">
               <textarea
                 ref={composerRef}
+                aria-label="输入题目或知识点"
                 value={input}
                 placeholder={
                   !model
@@ -980,6 +984,7 @@ function ModelSelect({
     >
       {!compact && <span className="model-select-label">切换模型</span>}
       <select
+        aria-label="选择模型"
         value={value ? `${value.providerId}||${value.modelId}` : ""}
         title="选择一个已启用的模型（换模型后继续当前对话）"
         onChange={(e) => {

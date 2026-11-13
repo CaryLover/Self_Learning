@@ -18,6 +18,7 @@ try {
   assert.match(failed, /只看讲解，不做练习/);
   assert.match(failed, /练习生成失败/);
   assert.match(failed, /已生成的讲解/);
+  assert.match(failed, /role="alert"/);
   assert.match(failed, /sandbox=""/);
   assert.match(failed, /Content-Security-Policy/);
   assert.match(failed, /default-src &#x27;none&#x27;/);
@@ -29,6 +30,7 @@ try {
   const clarification = render({ stage: 'clarification', html });
   assert.match(clarification, /clarify-card/);
   assert.match(clarification, /还差一点信息/);
+  assert.match(clarification, /role="status"/);
   assert.doesNotMatch(clarification, /error-card/);
   assert.match(render({ stage: 'clarification', html, topic: '题目' }, false, false, () => {}), /把原题放回输入框修改/);
   assert.doesNotMatch(render({ stage: 'clarification', html, topic: '题目' }), /把原题放回输入框修改/);

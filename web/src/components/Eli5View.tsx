@@ -22,7 +22,7 @@ export function Eli5View({ eli5, busy, onRetryLesson, onRetryPractice, onSkipPra
 
   return (
     <div className="eli5">
-      {eli5 && STAGE_LABEL[eli5.stage] && <div className="eli5-stage">{STAGE_LABEL[eli5.stage]}</div>}
+      {eli5 && STAGE_LABEL[eli5.stage] && <div className="eli5-stage" role="status">{STAGE_LABEL[eli5.stage]}</div>}
       {eli5?.physicsPreview && <div className="error-card">物理图仅供开发测试：题目理解、图形和讲解尚需人工审核。</div>}
       {eli5?.physicsUnverified && eli5.html && <div className="eli5-note" role="note">{eli5.physicsTextOnly ? "这道题没有经过物理工具核验：以下是模型文字讲解，请结合题目复核。" : "图文与计算由模型生成，请结合题目复核；如涉及物理内容，本次未使用物理工具核验。"}</div>}
       {eli5?.html && (
@@ -37,7 +37,7 @@ export function Eli5View({ eli5, busy, onRetryLesson, onRetryPractice, onSkipPra
         </div>
       )}
       {eli5?.stage === "clarification" && (
-        <div className="clarify-card">
+        <div className="clarify-card" role="status">
           <div className="clarify-head">
             <i className="ti ti-info-circle" aria-hidden="true"></i>
             <b>还差一点信息</b>
@@ -52,7 +52,7 @@ export function Eli5View({ eli5, busy, onRetryLesson, onRetryPractice, onSkipPra
         </div>
       )}
       {eli5?.stage === "error" && eli5.error && (
-        <div className="error-card">
+        <div className="error-card" role="alert">
           😢 {eli5.error}
           {onEditTopic && <><br /><button className="btn-link" onClick={onEditTopic}>修改题目后重新提交 →</button></>}
         </div>
