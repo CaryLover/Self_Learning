@@ -14,6 +14,7 @@ import { ELI5_PROMPT_VERSION } from "../prompts/eli5Core";
 import { runEli5Pipeline, runEli5Practice, runEli5UnverifiedFallback } from "../lib/eli5Pipeline";
 import { recoverLessonImages } from "../lib/sessionImages";
 import { buildSocraticSystem, buildEndSessionMessage } from "../prompts/socratic";
+import { enforceReportPolicy } from "../lib/socraticReport";
 import { dailyTip } from "../lib/encourage";
 import { effectiveVision, fileToDataUrl, MAX_IMAGES } from "../lib/vision";
 
@@ -267,7 +268,7 @@ export function LearnView(props: LearnViewProps) {
         parsed = json ? parseJsonLoose<{ knowledge?: unknown }>(json) : null;
       }
       if (isValidReport(parsed)) {
-        const report = {
+        const report = enforceReportPolicy({
           knowledge: parsed.knowledge.map((k) => ({
             name: String(k.name ?? "").slice(0, 60),
             score: Math.max(0, Math.min(100, Math.round(Number(k.score) || 0))),
@@ -275,7 +276,7 @@ export function LearnView(props: LearnViewProps) {
             advice: String(k.advice ?? ""),
           })),
           generatedAt: Date.now(),
-        };
+        }, answers);
         const asst: ChatMsg = {
           id: uid(),
           role: "assistant",
