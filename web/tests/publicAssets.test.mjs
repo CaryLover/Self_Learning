@@ -21,6 +21,7 @@ try {
   assert.match(headers, /X-Content-Type-Options: nosniff/);
   assert.match(headers, /X-Frame-Options: DENY/);
   assert.match(headers, /Strict-Transport-Security: max-age=31536000/);
+  assert.match(headers, /Cache-Control: public, max-age=31536000, immutable/);
   const lean = [];
   await releasePublicAssets(false).generateBundle.call({ emitFile: item => lean.push(item.fileName) });
   assert.ok(!lean.some(name => name.startsWith('physics-fonts/') || name.startsWith('physics-packages/')));
