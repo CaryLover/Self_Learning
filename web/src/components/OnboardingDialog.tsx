@@ -85,7 +85,7 @@ export function OnboardingDialog({
             ? "修改后点「保存」生效"
             : returning
               ? "已自动填入上次保存的信息，有变化可以直接修改，然后开始学习"
-              : "请完整填写下面的信息——它们只保存在这台设备的浏览器里，用来把握讲解的深度和难度"}
+              : "请完整填写下面的信息，用来把握讲解的深度和难度。信息保存在本机，生成讲解时会发送给所选模型服务。"}
         </p>
 
         <label className="onboard-label">
@@ -171,7 +171,7 @@ export function OnboardingDialog({
         )}
 
         <p className="onboard-privacy">
-          🔒 这些信息只保存在本机浏览器，不会上传；讲解时会参考「{GRADE_NAME[grade]}
+          🔒 昵称、学段和年级保存在本机浏览器，生成讲解时会发送给所选模型服务；如启用代理，请求也会经过代理。讲解时会参考「{GRADE_NAME[grade]}
           {gradeLevel ? ` · ${gradeLevel}` : ""}」的课程范围，避免用超纲方法（如给小学生用方程讲鸡兔同笼）。
         </p>
       </div>

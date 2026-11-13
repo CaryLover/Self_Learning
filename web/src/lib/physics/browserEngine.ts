@@ -9,6 +9,7 @@ import { makeInclineSource, verifyInclineResult } from "./typedSource";
 import { makeHangingSource, verifyHangingResult, type HangingModel } from "./hanging";
 import type { SmoothInclineModel } from "./model";
 import type { PhysicsForce } from "./pipeline";
+import { makeCircuitSource, verifyCircuitResult, type CircuitModel, type CircuitResult } from "./circuit";
 
 const packages = [
   ["typed-physics-0.3.0", "077c7e6adfb1df71e6246d399809f2e84f4cff6548a932801184a8779a016e22"],
@@ -17,7 +18,7 @@ const packages = [
 ] as const;
 
 /** 原型 API：调用方必须提供可合法分发、包含数学字体的同源字体。 */
-async function renderPrepared<T extends SmoothInclineModel | HangingModel, R>(prepared: { source: string; model: T; assumptions: string[] }, verify: (model: T, value: unknown) => boolean, fontUrls: string[], families: { text: string; math: string }, assetBase?: string) {
+async function renderPrepared<T extends SmoothInclineModel | HangingModel | CircuitModel, R>(prepared: { source: string; model: T; assumptions: string[] }, verify: (model: T, value: unknown) => boolean, fontUrls: string[], families: { text: string; math: string }, assetBase?: string) {
   if (!fontUrls.length) throw new Error("缺少用于物理图的字体");
   if (![families.text, families.math].every(value => /^[A-Za-z0-9 -]{1,80}$/.test(value))) throw new Error("字体名称无效");
   const fonts = fontUrls.map(value => {
@@ -70,4 +71,8 @@ export async function renderIncline(input: unknown, fontUrls: string[], families
 
 export async function renderHanging(input: unknown, fontUrls: string[], families: { text: string; math: string }, assetBase?: string) {
   return renderPrepared<HangingModel, { status: string; model: string; tension: number; forces: PhysicsForce[] }>(makeHangingSource(input), verifyHangingResult, fontUrls, families, assetBase);
+}
+
+export async function renderCircuit(input: unknown, fontUrls: string[], families: { text: string; math: string }, assetBase?: string) {
+  return renderPrepared<CircuitModel, CircuitResult>(makeCircuitSource(input), verifyCircuitResult, fontUrls, families, assetBase);
 }

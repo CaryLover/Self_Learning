@@ -7,7 +7,7 @@
  *   3. 给响应补 CORS 头并原样透传（含 SSE 流）。
  *
  * 隐私承诺（可审计）：
- *   - 不读取、不存储、不记录 Authorization 头与请求内容；
+ *   - 读取并转发 Authorization 头及请求体，不解析、存储或记录其内容；
  *   - 日志只输出被拒原因与转发次数，不含任何 key 或业务数据。
  *
  * 协议：
@@ -96,7 +96,7 @@ export default {
       return corsResponse(json({ error: "host_not_allowed" }, 403), origin, env);
     }
 
-    // ---- 构造上游请求（只带白名单内的头；Authorization 原样透传、不读取） ----
+    // ---- 构造上游请求（只带白名单内的头，Authorization 原样转发） ----
     const headers = new Headers();
     for (const h of FORWARD_HEADERS) {
       const v = request.headers.get(h);

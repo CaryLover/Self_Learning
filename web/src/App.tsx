@@ -3,6 +3,7 @@ import type { Grade, Mode, Session, Settings } from "./lib/types";
 import { loadSettings, loadUiPrefs, saveSettings, saveUiPrefs, type UiPrefs } from "./lib/store";
 import { deleteSession, getSession, listSessions, putSession } from "./lib/db";
 import { uid } from "./lib/id";
+import { recoverSession } from "./lib/recoverSession";
 import { LearnView } from "./components/LearnView";
 import { SettingsView } from "./components/SettingsView";
 import { OnboardingDialog } from "./components/OnboardingDialog";
@@ -79,7 +80,7 @@ export default function App() {
   const onOpenSession = useCallback((id: string) => {
     void getSession(id).then((s) => {
       if (s) {
-        setCurrent(s);
+        setCurrent(recoverSession(s));
         setPrefs((p) => ({ ...p, mode: s.mode }));
       }
     });
@@ -146,20 +147,20 @@ export default function App() {
         </div>
       </header>
 
-      {page === "learn" ? (
-        <LearnView
-          settings={settings}
-          prefs={prefs}
-          sessions={sessions}
-          current={current}
-          onPrefsChange={onChangePrefs}
-          onNewSession={onNewSession}
-          onOpenSession={onOpenSession}
-          onDeleteSession={onDeleteSession}
-          onSaveSession={onSaveSession}
-          goSettings={() => goPage("settings")}
-        />
-      ) : (
+      <LearnView
+        active={page === "learn"}
+        settings={settings}
+        prefs={prefs}
+        sessions={sessions}
+        current={current}
+        onPrefsChange={onChangePrefs}
+        onNewSession={onNewSession}
+        onOpenSession={onOpenSession}
+        onDeleteSession={onDeleteSession}
+        onSaveSession={onSaveSession}
+        goSettings={() => goPage("settings")}
+      />
+      {page === "settings" && (
         <SettingsView
           settings={settings}
           grade={prefs.grade}

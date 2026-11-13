@@ -5,6 +5,7 @@ import katex from "katex";
 import "katex/dist/katex.min.css";
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
+const textOnlyMd = new MarkdownIt({ html: false, linkify: false, breaks: true }).disable(["link", "image", "autolink"]);
 
 // 外链默认新窗口打开
 const defaultLinkOpen =
@@ -45,11 +46,11 @@ function looksLikeCurrency(tex: string): boolean {
 }
 
 /** 提取数学段并替换为占位符（跳过行内代码，已先被调用方保护） */
-function extractMath(text: string, mathes: MathSeg[]): string {
+function extractMath(text: string, mathes: MathSeg[], prefix: string): string {
   let out = text;
   const push = (tex: string, display: boolean): string => {
     mathes.push({ tex, display });
-    return `%%ZXZMATH${mathes.length - 1}%%`;
+    return `%%${prefix}MATH${mathes.length - 1}%%`;
   };
   out = out.replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => push(tex.trim(), true));
   out = out.replace(/\\\[([\s\S]+?)\\\]/g, (_, tex) => push(tex.trim(), true));
@@ -62,7 +63,11 @@ function extractMath(text: string, mathes: MathSeg[]): string {
 }
 
 /** 将 markdown 文本渲染为 HTML；支持 $...$ / $$...$$ / \(...\) / \[...\] 数学 */
-export function renderMarkdown(src: string): string {
+export function renderMarkdown(src: string, options: { textOnly?: boolean } = {}): string {
+  const renderer = options.textOnly ? textOnlyMd : md;
+  let prefix = "ZXZ";
+  const decoded = renderer.utils.unescapeAll(src);
+  while (src.includes(`%%${prefix}`) || decoded.includes(`%%${prefix}`)) prefix += "Z";
   // 1) 先把围栏代码块按顶层切块保护起来
   const blocks: string[] = [];
   const parts = splitByFence(src, blocks);
@@ -70,17 +75,17 @@ export function renderMarkdown(src: string): string {
   // 2) 各 markdown 块内：保护行内代码 → 提取数学 → 渲染 → 还原数学 → 还原行内代码
   const renderedHtml = parts
     .map((part) => {
-      if (part.kind === "code") return md.render(part.text);
+      if (part.kind === "code") return renderer.render(part.text);
       const inlines: string[] = [];
       const mathes: MathSeg[] = [];
       let text = part.text.replace(/`[^`\n]+`/g, (m) => {
         inlines.push(m);
-        return `%%ZXZINLINE${inlines.length - 1}%%`;
+        return `%%${prefix}INLINE${inlines.length - 1}%%`;
       });
-      text = extractMath(text, mathes);
-      let html = md.render(text);
-      html = html.replace(/%%ZXZMATH(\d+)%%/g, (_, i) => renderMath(mathes[Number(i)]));
-      html = html.replace(/%%ZXZINLINE(\d+)%%/g, (_, i) => md.renderInline(inlines[Number(i)]));
+      text = extractMath(text, mathes, prefix);
+      let html = renderer.render(text);
+      html = html.replace(new RegExp(`%%${prefix}MATH(\\d+)%%`, "g"), (match, i) => mathes[Number(i)] ? renderMath(mathes[Number(i)]) : match);
+      html = html.replace(new RegExp(`%%${prefix}INLINE(\\d+)%%`, "g"), (match, i) => inlines[Number(i)] ? renderer.renderInline(inlines[Number(i)]) : match);
       return html;
     })
     .join("");
@@ -106,18 +111,4 @@ function splitByFence(src: string, sink: string[]): Part[] {
   if (last < src.length) parts.push({ kind: "md", text: src.slice(last) });
   sink.push(...parts.filter((p) => p.kind === "code").map((p) => p.text));
   return parts;
-}
-
-/** 从 HTML 中提取纯文本（供 ELI5 练习题环节传递讲解内容，压缩上下文） */
-export function htmlToText(html: string): string {
-  return html
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/\s+/g, " ")
-    .trim();
 }

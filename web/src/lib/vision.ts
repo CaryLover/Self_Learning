@@ -44,19 +44,21 @@ export async function fileToDataUrl(file: File): Promise<string> {
   if (file.size > MAX_IMAGE_MB * 1024 * 1024) throw new Error(`图片不能超过 ${MAX_IMAGE_MB}MB`);
 
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_DIM / Math.max(bitmap.width, bitmap.height));
-  const w = Math.max(1, Math.round(bitmap.width * scale));
-  const h = Math.max(1, Math.round(bitmap.height * scale));
+  try {
+    const scale = Math.min(1, MAX_DIM / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
 
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("浏览器不支持图片处理");
-  ctx.drawImage(bitmap, 0, 0, w, h);
-  bitmap.close?.();
-
-  // 优先 JPEG（体积小）；透明 PNG 也转 JPEG，白底
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.86);
-  return dataUrl;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("浏览器不支持图片处理");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", 0.86);
+  } finally {
+    bitmap.close?.();
+  }
 }

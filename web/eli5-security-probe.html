@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>讲解页资源隔离检查</title></head>
+<body>
+<p id="result">正在检查本地资源隔离…</p>
+<script type="module">
+import { protectExplainDocument } from "/src/lib/explainDocument.ts";
+
+const result = document.querySelector("#result");
+const mock = "http://127.0.0.1:8791";
+const count = async () => (await (await fetch(`${mock}/__last-prompt`)).json()).resourceProbeRequests;
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const show = html => {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("sandbox", "");
+  frame.srcdoc = html;
+  document.body.append(frame);
+  return frame;
+};
+
+try {
+  const before = await count();
+  const html = `<!DOCTYPE html><html><head></head><body><img src="${mock}/__resource-probe"></body></html>`;
+  const baseline = show(html);
+  await delay(1000);
+  baseline.remove();
+  const afterBaseline = await count();
+  const protectedFrame = show(protectExplainDocument(html));
+  await delay(1000);
+  protectedFrame.remove();
+  const afterProtected = await count();
+  result.textContent = afterBaseline === before + 1 && afterProtected === afterBaseline ? "资源隔离检查通过" : "资源隔离检查失败";
+} catch {
+  result.textContent = "检查失败：请启动本地模拟接口。";
+}
+</script>
+</body>
+</html>

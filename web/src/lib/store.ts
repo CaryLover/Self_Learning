@@ -1,4 +1,4 @@
-/** 家长设置：localStorage 持久化（key 只存这里，永不上传） */
+/** 家长设置保存在 localStorage；模型调用时会将密钥发送给所选服务或代理。 */
 
 import type { Grade, Mode, Settings } from "./types";
 import { PROVIDER_PRESETS } from "./providers";

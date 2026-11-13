@@ -23,9 +23,36 @@ try {
   const question = '质量2 kg的物块在30°固定光滑斜面上，只受重力和支持力。';
   const extraction = { status: 'candidate', model: valid, evidence: { massKg: '质量2 kg', angleDeg: '30°', surface: '固定光滑斜面', extraForces: '只受重力和支持力' } };
   assert.equal(parsePhysicsExtraction(JSON.stringify(extraction), question, false).status, 'candidate');
+  for (const [source, excerpt, expected] of [
+    ['质量2e0 kg', '2e0 kg', 'candidate'],
+    ['质量2克', '2克', 'needs_review'],
+    ['质量-2 kg', '2 kg', 'needs_review'],
+    ['质量− 2 kg', '2 kg', 'needs_review'],
+    ['质量4+2 kg', '2 kg', 'needs_review'],
+    ['质量1, 2 kg', '2 kg', 'needs_review'],
+    ['质量2 kg + 1 kg', '2 kg', 'needs_review'],
+  ]) {
+    const text = question.replace('质量2 kg', source);
+    const data = { ...extraction, evidence: { ...extraction.evidence, massKg: excerpt } };
+    assert.equal(parsePhysicsExtraction(JSON.stringify(data), text, false).status, expected, source);
+  }
+  for (const [source, excerpt, expected] of [
+    ['重力加速度10 m/s²', '10 m/s²', 'candidate'],
+    ['重力加速度1e1 m/s^2', '1e1 m/s^2', 'candidate'],
+    ['重力加速度10 cm/s²', '10 cm/s²', 'needs_review'],
+    ['重力加速度10', '10', 'needs_review'],
+  ]) {
+    const data = { ...extraction, model: { ...valid, gravity: { value: 10, source: 'stated' } }, evidence: { ...extraction.evidence, gravity: excerpt } };
+    assert.equal(parsePhysicsExtraction(JSON.stringify(data), `${question}${source}`, false).status, expected, source);
+  }
   assert.equal(parsePhysicsExtraction(JSON.stringify(extraction), question, true).status, 'needs_review');
   assert.equal(parsePhysicsExtraction(JSON.stringify({ ...extraction, evidence: { ...extraction.evidence, extraForces: '伪造引文' } }), question, false).status, 'needs_review');
   assert.equal(parsePhysicsExtraction(JSON.stringify({ ...extraction, model: { ...valid, massKg: { value: 3, source: 'stated' } } }), question, false).status, 'needs_review');
+  assert.match(parsePhysicsExtraction(JSON.stringify({ ...extraction, model: { ...valid, massKg: { value: -1, source: 'stated' } } }), question, false).reason, /物体质量/);
+  assert.match(parsePhysicsExtraction(JSON.stringify({ ...extraction, evidence: { ...extraction.evidence, massKg: '伪造引文' } }), question, false).reason, /物体质量缺少可核对的原文依据/);
+  assert.equal(parsePhysicsExtraction(JSON.stringify({ ...extraction, evidence: { ...extraction.evidence, surface: '斜面' } }), question, false).status, 'needs_review');
+  assert.equal(parsePhysicsExtraction(JSON.stringify({ ...extraction, evidence: { ...extraction.evidence, extraForces: '重力和支持力' } }), question, false).status, 'needs_review');
+  assert.equal(parsePhysicsExtraction(JSON.stringify(extraction), question, false).status, 'candidate');
   assert.equal(parsePhysicsExtraction('{"status":"needs_review"}', question, false).status, 'needs_review');
   let calls = 0;
   let renders = 0;
@@ -41,8 +68,39 @@ try {
   assert.ok(candidate.practices[2].answer.includes('5'));
   assert.equal(calls, 1);
   assert.equal(renders, 1);
+  const juniorIncline = await preparePhysicsLesson({ topic: question, hasImages: false, allowNotApplicable: true, grade: 'junior', signal, call, render });
+  assert.equal(juniorIncline.status, 'unsupported');
+  assert.equal(renders, 1);
+  const unrelated = await preparePhysicsLesson({ topic: '为什么先乘除后加减？', hasImages: false, allowNotApplicable: true, signal, call: async () => '{"status":"not_applicable"}', render });
+  assert.equal(unrelated.status, 'not_applicable');
+  assert.equal(renders, 1);
+  let repairedCalls = 0;
+  const repairedRoute = await preparePhysicsLesson({ topic: '为什么先乘除后加减？', hasImages: false, allowNotApplicable: true, signal, call: async () => ++repairedCalls === 1 ? '格式错误' : '{"status":"not_applicable"}', render });
+  assert.equal(repairedRoute.status, 'not_applicable');
+  assert.equal(repairedCalls, 2);
+  let uncertainCalls = 0;
+  const uncertainRoute = await preparePhysicsLesson({ topic: '题目条件不清', hasImages: false, allowNotApplicable: true, signal, call: async () => { uncertainCalls++; return '{"status":"needs_review"}'; }, render });
+  assert.equal(uncertainRoute.status, 'needs_review');
+  assert.equal(uncertainCalls, 1);
+  const beyondLibrary = await preparePhysicsLesson({ topic: '解释热传导', hasImages: false, allowNotApplicable: true, signal, call: async () => '{"status":"unsupported"}', render });
+  assert.equal(beyondLibrary.status, 'unsupported');
+  assert.equal(renders, 1);
+  const explainedStatus = await preparePhysicsLesson({ topic: '请解释光合作用', hasImages: false, allowNotApplicable: true, signal, call: async () => '{"status":"not_applicable","reason":"这是生物学主题"}', render });
+  assert.equal(explainedStatus.status, 'not_applicable');
+  const explainedUnsupported = await preparePhysicsLesson({ topic: '请解释热传导', hasImages: false, allowNotApplicable: true, signal, call: async () => '{"status":"unsupported","reason":"热学暂不支持"}', render });
+  assert.equal(explainedUnsupported.status, 'unsupported');
+  assert.equal(renders, 1);
+  const contradictory = await preparePhysicsLesson({ topic: question, hasImages: false, allowNotApplicable: true, signal, call: async () => JSON.stringify({ status: 'not_applicable', model: valid }), render });
+  assert.equal(contradictory.status, 'needs_review');
+  assert.equal(renders, 1);
+  const unsupported = await preparePhysicsLesson({ topic: '物理条件不明确', hasImages: false, allowNotApplicable: true, signal, call: async () => '{"status":"needs_review"}', render });
+  assert.equal(unsupported.status, 'needs_review');
+  assert.equal(renders, 1);
+  const explicit = await preparePhysicsLesson({ topic: '无关题目', hasImages: false, signal, call: async () => '{"status":"not_applicable"}', render });
+  assert.equal(explicit.status, 'needs_review');
+  assert.equal(renders, 1);
   assert.equal((await preparePhysicsLesson({ topic: question, hasImages: true, signal, call, render })).status, 'needs_review');
-  assert.equal(calls, 1);
+  assert.equal(calls, 2);
   const incomplete = await preparePhysicsLesson({ topic: '条件不明确', hasImages: false, signal, call, render });
   assert.equal(incomplete.status, 'needs_review');
   assert.equal(renders, 1);
@@ -61,8 +119,14 @@ try {
   const hangingEvidence = { massKg: '质量2 kg', motion: '悬挂并静止', rope: '固定、竖直绷紧的绳', extraForces: '只受重力和绳的拉力' };
   const hangingRaw = JSON.stringify({ status: 'candidate', model: hanging, evidence: hangingEvidence });
   assert.equal(parsePhysicsExtraction(hangingRaw, hangingQuestion, false).status, 'candidate');
+  for (const [field, fragment] of [['motion', '悬挂'], ['rope', '绳悬挂'], ['extraForces', '重力和绳的拉力']]) {
+    const weak = JSON.stringify({ status: 'candidate', model: hanging, evidence: { ...hangingEvidence, [field]: fragment } });
+    assert.equal(parsePhysicsExtraction(weak, hangingQuestion, false).status, 'needs_review', field);
+  }
   const hangingLesson = await preparePhysicsLesson({ topic: hangingQuestion, hasImages: false, signal, call: async () => hangingRaw, render: async model => ({ model, assumptions: ['gravity'], result: { status: 'solved', model: 'hanging-body', tension: 20, forces: hangingForces }, svg: '<svg></svg>' }) });
   assert.equal(hangingLesson.status, 'candidate');
+  const juniorHanging = await preparePhysicsLesson({ topic: hangingQuestion, hasImages: false, grade: 'junior', allowNotApplicable: true, signal, call: async () => hangingRaw, render: async model => ({ model, assumptions: ['gravity'], result: { status: 'solved', model: 'hanging-body', tension: 20, forces: hangingForces }, svg: '<svg></svg>' }) });
+  assert.equal(juniorHanging.status, 'candidate');
   assert.equal(hangingLesson.practices.length, 3);
   assert.ok(hangingLesson.html.includes('拉力 T = mg'));
   assert.equal(verifyHangingResult(hanging, { status: 'solved', model: 'hanging-body', tension: 20, forces: [{ role: 'weight', direction: [0, -1] }, { role: 'tension', direction: [0, -1] }] }), false);

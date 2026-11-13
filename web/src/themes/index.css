@@ -1200,6 +1200,14 @@ html[data-grade="senior"] .sticker {
   border-radius: var(--radius-sm);
 }
 
+.eli5-note {
+  padding: 12px 15px;
+  color: var(--ink);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
 .report-busy {
   padding: 12px;
   text-align: center;
@@ -1978,10 +1986,18 @@ html[data-grade="senior"] .thumb-x {
   color: var(--bad);
 }
 
-.attach-err {
+.attach-err,
+.attach-processing {
   margin: 6px 22px 0;
   font-size: 0.82em;
+}
+
+.attach-err {
   color: var(--bad);
+}
+
+.attach-processing {
+  color: var(--ink-2);
 }
 
 .bubble-imgs {

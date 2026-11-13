@@ -8,9 +8,9 @@ import assert from "node:assert/strict";
 const dir = await mkdtemp(join(tmpdir(), "person-board-"));
 const outfile = join(dir, "model.mjs");
 try {
-  const bundle = await build({ stdin: { contents: `export * from './src/lib/physics/personBoard.ts'; export * from './src/lib/physics/extraction.ts'; export * from './src/lib/physics/pipeline.ts';`, resolveDir: process.cwd(), loader: "ts" }, bundle: true, platform: "node", format: "esm", write: false, outfile });
+  const bundle = await build({ stdin: { contents: `export * from './src/lib/physics/personBoard.ts'; export * from './src/lib/physics/extraction.ts'; export * from './src/lib/physics/pipeline.ts'; export { restorePhysicsCandidate } from './src/lib/physics/eli5Explain.ts';`, resolveDir: process.cwd(), loader: "ts" }, bundle: true, platform: "node", format: "esm", write: false, outfile });
   await writeFile(outfile, bundle.outputFiles[0].contents);
-  const { validatePersonBoard, solvePersonBoard, parsePhysicsExtraction, preparePhysicsLesson } = await import(pathToFileURL(outfile).href);
+  const { validatePersonBoard, solvePersonBoard, parsePhysicsExtraction, preparePhysicsLesson, restorePhysicsCandidate } = await import(pathToFileURL(outfile).href);
   const stated = value => ({ value, source: "stated" });
   const model = { kind: "person-board-rest", personMassKg: stated(60), boardMassKg: stated(20), gravity: stated(10), tensionN: stated(100), setup: stated("person-on-board-ground-rope-up"), motion: stated("rest"), extraForces: stated("none"), requested: ["forces", "contact"] };
   const question = "人质量60 kg，板质量20 kg。人站在水平板上，板由地面支持，固定绳竖直绷紧并向上拉人。人和板均静止。人和板只受到重力、相互接触力、地面对板支持力和绳对人的拉力。绳对人的拉力为100 N，重力加速度10 m/s²。求受力和接触力。";
@@ -20,6 +20,7 @@ try {
   assert.equal(parsePhysicsExtraction(raw, question, true).status, "needs_review");
   assert.equal(parsePhysicsExtraction(JSON.stringify({ status: "candidate", model, evidence: { ...evidence, setup: "人" } }), question, false).status, "needs_review");
   assert.equal(parsePhysicsExtraction(JSON.stringify({ status: "candidate", model, evidence: { ...evidence, extraForces: "重力" } }), question, false).status, "needs_review");
+  assert.equal(parsePhysicsExtraction(JSON.stringify({ status: "candidate", model, evidence: { ...evidence, motion: "人和板" } }), question, false).status, "needs_review");
   assert.equal(parsePhysicsExtraction(raw, question.replace("人和板均静止", "人和板并不静止"), false).status, "needs_review");
   assert.equal(parsePhysicsExtraction(JSON.stringify({ status: "candidate", model: { ...model, tensionN: stated(200) }, evidence }), question, false).status, "needs_review");
   assert.equal(validatePersonBoard({ ...model, tensionN: stated(600) }).ok, false);
@@ -46,6 +47,9 @@ try {
   }
   assert.match(lesson.html, /整体内部/);
   assert.equal(lesson.practices.length, 3);
+  const saved = JSON.parse(JSON.stringify({ stage: 'error', html: lesson.html, retryPhysicsExplanation: true, pendingPhysicsPractices: lesson.practices, physicsPreview: { status: 'candidate', modelVersion: 'person-board-static:1', model: lesson.model, result: lesson.result, assumptions: lesson.assumptions, evidence: lesson.evidence } }));
+  assert.deepEqual(restorePhysicsCandidate(saved), lesson);
+  assert.equal(restorePhysicsCandidate({ ...saved, physicsPreview: { ...saved.physicsPreview, modelVersion: 'typed-physics:0.3.0' } }), null);
   assert.match(lesson.practices[1].question, /人质量 30 kg/);
   assert.match(lesson.practices[1].question, /拉人 50 N/);
   assert.match(lesson.practices[1].answer, /250 N/);

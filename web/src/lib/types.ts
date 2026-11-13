@@ -70,14 +70,22 @@ export interface MasteryReport {
   generatedAt: number;
 }
 
-export type Eli5Stage = "idle" | "explaining" | "clarification" | "practicing" | "done" | "error";
+export type Eli5Stage = "idle" | "explaining" | "physics_explaining" | "clarification" | "practicing" | "done" | "error";
 
 export interface Eli5State {
   topic?: string;
+  sourceImageCount?: number;
   promptVersion?: string; // 旧会话没有该字段
   physicsPreview?: { status: "candidate"; modelVersion: string; model: PhysicsModel; result: PhysicsResult; evidence: Record<string, string>; assumptions: string[] };
+  pendingPhysicsPractices?: PracticeItem[];
+  retryPhysicsExplanation?: boolean;
+  /** 物理条件待复核时，允许使用者主动改用未经物理核验的普通讲解。 */
+  unverifiedFallback?: boolean;
+  physicsUnverified?: boolean;
+  physicsTextOnly?: boolean;
   html?: string; // 模型生成的讲解页（沙箱 iframe 渲染）
   practices?: PracticeItem[];
+  retryLesson?: boolean;
   retryPractice?: boolean;
   stage: Eli5Stage;
   error?: string;

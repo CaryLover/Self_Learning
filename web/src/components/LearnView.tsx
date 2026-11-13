@@ -11,7 +11,8 @@ import { parseJsonLoose, splitProtocolBlock } from "../lib/extract";
 import { buildContext } from "../lib/context";
 import { uid } from "../lib/id";
 import { ELI5_PROMPT_VERSION } from "../prompts/eli5Core";
-import { runEli5Pipeline, runEli5Practice } from "../lib/eli5Pipeline";
+import { runEli5Pipeline, runEli5Practice, runEli5UnverifiedFallback } from "../lib/eli5Pipeline";
+import { recoverLessonImages } from "../lib/sessionImages";
 import { buildSocraticSystem, buildEndSessionMessage } from "../prompts/socratic";
 import { dailyTip } from "../lib/encourage";
 import { effectiveVision, fileToDataUrl, MAX_IMAGES } from "../lib/vision";
@@ -23,6 +24,7 @@ const MODES: Mode[] = ["eli5", "socratic"];
 const AUTHFAIL_KEY = "zxz.authfail.v1";
 
 export interface LearnViewProps {
+  active: boolean;
   settings: Settings;
   prefs: UiPrefs;
   sessions: Session[];
@@ -36,11 +38,13 @@ export interface LearnViewProps {
 }
 
 export function LearnView(props: LearnViewProps) {
-  const { settings, prefs, sessions, current, onPrefsChange, onNewSession, onOpenSession, onDeleteSession, onSaveSession, goSettings } = props;
+  const { active, settings, prefs, sessions, current, onPrefsChange, onNewSession, onOpenSession, onDeleteSession, onSaveSession, goSettings } = props;
 
   const [input, setInput] = useState("");
   const [images, setImages] = useState<string[]>([]); // 待发送的图片（data URL）
   const [imgErr, setImgErr] = useState<string | null>(null);
+  const [preparingImages, setPreparingImages] = useState(false);
+  const preparingImagesRef = useRef(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [reportBusy, setReportBusy] = useState(false);
@@ -306,40 +310,70 @@ export function LearnView(props: LearnViewProps) {
     abortRef.current = ac;
     let timedOut = false;
     const timer = window.setTimeout(() => { timedOut = true; ac.abort(); }, 180_000);
-    let s: Session = { ...s0, title: s0.title || topic.slice(0, 24), eli5: { stage: "explaining", topic, promptVersion: ELI5_PROMPT_VERSION } };
+    let s: Session = { ...s0, title: s0.title || topic.slice(0, 24), eli5: { stage: "explaining", topic, sourceImageCount: images.length, promptVersion: ELI5_PROMPT_VERSION } };
     commit(s);
     try {
-      // 开发环境的显式测试入口；未经题库评测与人工审核，不对正式版开放。
-      if (import.meta.env.DEV && topic.startsWith("【物理测试】")) {
-        if (s.grade !== "senior") {
+      // 默认仅开发环境开放；构建开关只用于显式预览，结果仍需审核。
+      const explicitPhysics = topic.startsWith("【物理测试】");
+      const autoPhysics = __PHYSICS_PREVIEW__ && !explicitPhysics && s.grade !== "primary" && images.length === 0;
+      let physicsUnverified = __PHYSICS_PREVIEW__ && !explicitPhysics && !autoPhysics;
+      let physicsTextOnly = false;
+      if ((import.meta.env.DEV || __PHYSICS_PREVIEW__) && (explicitPhysics || autoPhysics)) {
+        if (explicitPhysics && s.grade !== "senior") {
           commit({ ...s, eli5: { ...s.eli5!, stage: "error", error: "物理测试原型暂时只支持高中学段。" } });
           return;
         }
-        const [{ preparePhysicsLesson }, { renderPhysicsInWorker }] = await Promise.all([
-          import("../lib/physics/pipeline"), import("../lib/physics/workerClient"),
+        const [{ preparePhysicsLesson, physicsModelVersion }, { PhysicsWorkerError }] = await Promise.all([
+          import("../lib/physics/pipeline"), import("../lib/physics/workerError"),
         ]);
-        const request = topic.slice("【物理测试】".length).trim();
-        const candidate = await preparePhysicsLesson({
-          topic: request, hasImages: images.length > 0, signal: ac.signal,
-          call: (messages, signal) => call(messages, false, signal),
-          render: (model) => renderPhysicsInWorker(model, ac.signal),
-        });
-        if (candidate.status === "needs_review") {
-          s = { ...s, eli5: { ...s.eli5!, stage: "error", error: `物理测试需要复核：${candidate.reason}` } };
-        } else {
-          s = { ...s, eli5: { ...s.eli5!, stage: "done", html: candidate.html, practices: candidate.practices, physicsPreview: { status: "candidate", modelVersion: candidate.model.kind === "person-board-rest" ? "person-board-static:1" : "typed-physics:0.3.0", model: candidate.model, result: candidate.result, evidence: candidate.evidence, assumptions: candidate.assumptions } } };
+        const request = explicitPhysics ? topic.slice("【物理测试】".length).trim() : topic;
+        let candidate: Awaited<ReturnType<typeof preparePhysicsLesson>>;
+        try {
+          candidate = await preparePhysicsLesson({
+            topic: request, hasImages: images.length > 0, allowNotApplicable: autoPhysics, grade: s.grade, signal: ac.signal,
+            call: (messages, signal) => call(messages, false, signal),
+            render: async (model) => {
+              try {
+                const { renderPhysicsInWorker } = await import("../lib/physics/workerClient");
+                return await renderPhysicsInWorker(model, ac.signal);
+              } catch (error) {
+                if (ac.signal.aborted || error instanceof PhysicsWorkerError) throw error;
+                throw new PhysicsWorkerError("无法加载物理工具，请检查网络");
+              }
+            },
+          });
+        } catch (error) {
+          if (!(error instanceof PhysicsWorkerError) || ac.signal.aborted) throw error;
+          commit({ ...s, eli5: { ...s.eli5!, stage: "error", retryLesson: true, error: `物理工具处理失败：${error.message}。请检查网络或浏览器后重新生成讲解。` } });
+          return;
         }
-        commit(s);
-        return;
+        if (candidate.status === "not_applicable" || candidate.status === "unsupported") {
+          physicsUnverified = true;
+          physicsTextOnly = candidate.status === "unsupported";
+        } else if (candidate.status === "needs_review") {
+          // 复核不是终点：保留重试入口；自动分流时再提供明确标注的未核验文字退路。
+          s = { ...s, eli5: { ...s.eli5!, stage: "error", retryLesson: true, unverifiedFallback: autoPhysics, error: `${autoPhysics ? "物理工具无法自动核对这道题" : "物理测试需要复核"}：${candidate.reason}` } };
+        } else {
+          const physicsPreview = { status: "candidate" as const, modelVersion: physicsModelVersion(candidate.model.kind), model: candidate.model, result: candidate.result, evidence: candidate.evidence, assumptions: candidate.assumptions };
+          s = { ...s, eli5: { ...s.eli5!, stage: "physics_explaining", html: candidate.html, physicsPreview, pendingPhysicsPractices: candidate.practices } };
+          commit(s);
+          const { addEli5PhysicsExplanation } = await import("../lib/physics/eli5Explain");
+          const explained = await addEli5PhysicsExplanation({ candidate, topic: request, grade: s.grade, ctx: pctx, signal: ac.signal, call: (messages, signal) => call(messages, false, signal) });
+          s = { ...s, eli5: { ...s.eli5!, stage: "done", html: explained.html, practices: explained.practices, physicsPreview, pendingPhysicsPractices: undefined, retryPhysicsExplanation: false } };
+        }
+        if (candidate.status !== "not_applicable" && candidate.status !== "unsupported") {
+          commit(s);
+          return;
+        }
       }
       await runEli5Pipeline({
-        grade: s.grade, topic, images, ctx: pctx, signal: ac.signal,
+        grade: s.grade, topic, images, ctx: pctx, signal: ac.signal, textOnly: physicsTextOnly,
         call: (messages, signal) => call(messages, false, signal),
-        update: (eli5) => { s = { ...s, eli5 }; commit(s); },
+        update: (eli5) => { s = { ...s, eli5: physicsUnverified ? { ...eli5, physicsUnverified: true, physicsTextOnly } : eli5 }; commit(s); },
       });
     } catch (e) {
       const error = ac.signal.aborted ? (timedOut ? "生成超时，请重试或换个模型。" : "已停止生成。") : friendlyError(e);
-      commit({ ...s, eli5: { ...s.eli5!, stage: "error", error, retryPractice: s.eli5?.stage === "practicing" && !!s.eli5.html } });
+      commit({ ...s, eli5: { ...s.eli5!, stage: "error", error, retryLesson: s.eli5?.stage === "explaining" && !!s.eli5.topic, retryPractice: s.eli5?.stage === "practicing" && !!s.eli5.html, retryPhysicsExplanation: s.eli5?.stage === "physics_explaining" && !!s.eli5.physicsPreview && !!s.eli5.pendingPhysicsPractices } });
     } finally {
       window.clearTimeout(timer);
       if (abortRef.current === ac) abortRef.current = null;
@@ -347,10 +381,121 @@ export function LearnView(props: LearnViewProps) {
     }
   }
 
+  async function retryEli5Lesson(): Promise<void> {
+    if (busy || !current?.eli5?.retryLesson || !current.eli5.topic) return;
+    const originalImages = recoverLessonImages(current);
+    if (!originalImages) {
+      commit({ ...current, eli5: { ...current.eli5, retryLesson: false, error: "原题图片无法完整恢复，请重新上传图片并提交题目。" } });
+      return;
+    }
+    if (originalImages.length && !canVision) {
+      commit({ ...current, eli5: { ...current.eli5, error: "这道题包含图片，请先选择支持图片的模型，再重新生成讲解。" } });
+      return;
+    }
+    await runEli5(current.eli5.topic, current, originalImages);
+  }
+
+  /**
+   * 物理条件无法核对时，使用者可以主动退到普通讲解。
+   * 这里只使用文字讲解：不展示未经核对的物理图和受力分析，并保留“未核验”提示。
+   */
+  async function continueEli5Unverified(): Promise<void> {
+    const initial = current?.eli5;
+    if (busy || !current || !initial?.unverifiedFallback || !initial.topic) return;
+    if (!model || !apiKey || !base) {
+      goSettings();
+      return;
+    }
+    const originalImages = recoverLessonImages(current);
+    if (!originalImages) {
+      commit({ ...current, eli5: { ...initial, unverifiedFallback: false, retryLesson: true, error: "原题图片无法完整恢复，请重新上传图片并提交题目。" } });
+      return;
+    }
+    if (originalImages.length && !canVision) {
+      commit({ ...current, eli5: { ...initial, error: "这道题包含图片，请先选择支持图片的模型，再改用普通讲解。" } });
+      return;
+    }
+    setBusy(true);
+    const ac = new AbortController();
+    abortRef.current = ac;
+    let timedOut = false;
+    const timer = window.setTimeout(() => { timedOut = true; ac.abort(); }, 180_000);
+    let s: Session = {
+      ...current,
+      eli5: { ...initial, stage: "explaining", error: undefined, html: undefined, practices: undefined, retryLesson: false, retryPractice: false, unverifiedFallback: false, physicsUnverified: true, physicsTextOnly: true },
+    };
+    commit(s);
+    try {
+      await runEli5UnverifiedFallback({
+        grade: s.grade, topic: initial.topic, images: originalImages, ctx: pctx, signal: ac.signal,
+        call: (messages, signal) => call(messages, false, signal),
+        update: (eli5) => { s = { ...s, eli5 }; commit(s); },
+      });
+    } catch (error) {
+      const detail = ac.signal.aborted ? (timedOut ? "生成超时。" : "已停止生成。") : friendlyError(error);
+      const stage = s.eli5?.stage;
+      const retryPractice = stage === "practicing" && !!s.eli5?.html;
+      commit({ ...s, eli5: { ...s.eli5!, stage: "error", retryLesson: stage === "explaining" && !!s.eli5?.topic, retryPractice, unverifiedFallback: true, error: retryPractice ? `讲解已保留，练习未生成：${detail}` : `普通讲解未生成：${detail}` } });
+    } finally {
+      window.clearTimeout(timer);
+      if (abortRef.current === ac) abortRef.current = null;
+      setBusy(false);
+    }
+  }
+
+  async function retryPhysicsExplanation(): Promise<void> {
+    if (!(import.meta.env.DEV || __PHYSICS_PREVIEW__)) return;
+    const initial = current?.eli5;
+    if (busy || !current || !initial?.retryPhysicsExplanation || !initial.html || !initial.topic || !initial.physicsPreview || !initial.pendingPhysicsPractices) return;
+    const topic = initial.topic.startsWith("【物理测试】") ? initial.topic.slice("【物理测试】".length).trim() : initial.topic;
+    setBusy(true);
+    const ac = new AbortController();
+    abortRef.current = ac;
+    let timedOut = false;
+    const timer = window.setTimeout(() => { timedOut = true; ac.abort(); }, 180_000);
+    let s: Session = { ...current, eli5: { ...initial, stage: "physics_explaining", error: undefined, retryPhysicsExplanation: false } };
+    commit(s);
+    try {
+      const { addEli5PhysicsExplanation, restorePhysicsCandidate } = await import("../lib/physics/eli5Explain");
+      const candidate = restorePhysicsCandidate(initial);
+      if (!candidate) {
+        commit({ ...s, eli5: { ...s.eli5!, stage: "error", html: undefined, physicsPreview: undefined, pendingPhysicsPractices: undefined, retryLesson: true, error: "已保存的物理结果未通过恢复检查，请重新生成讲解。" } });
+        return;
+      }
+      const explained = await addEli5PhysicsExplanation({ candidate, topic, grade: s.grade, ctx: pctx, signal: ac.signal, call: (messages, signal) => call(messages, false, signal) });
+      s = { ...s, eli5: { ...s.eli5!, stage: "done", html: explained.html, practices: explained.practices, pendingPhysicsPractices: undefined, retryPhysicsExplanation: false } };
+      commit(s);
+    } catch (error) {
+      const detail = ac.signal.aborted ? (timedOut ? "生成超时。" : "已停止生成。") : friendlyError(error);
+      commit({ ...s, eli5: { ...s.eli5!, stage: "error", error: `物理图和结果已保留，讲解未生成：${detail}`, retryPhysicsExplanation: true } });
+    } finally {
+      window.clearTimeout(timer);
+      if (abortRef.current === ac) abortRef.current = null;
+      setBusy(false);
+    }
+  }
+
+  /** 补充讲解失败或用户不想等待时，保留已核对的物理图、结果和固定练习。 */
+  async function skipPhysicsExplanation(): Promise<void> {
+    if (!(import.meta.env.DEV || __PHYSICS_PREVIEW__)) return;
+    const initial = current?.eli5;
+    if (busy || !current || !initial?.retryPhysicsExplanation) return;
+    const { finishPhysicsWithoutExplanation } = await import("../lib/physics/eli5Explain");
+    const next = finishPhysicsWithoutExplanation(initial);
+    if (!next) {
+      commit({ ...current, eli5: { ...initial, stage: "error", html: undefined, physicsPreview: undefined, pendingPhysicsPractices: undefined, retryPhysicsExplanation: false, retryLesson: true, error: "已保存的物理结果未通过恢复检查，请重新生成讲解。" } });
+      return;
+    }
+    commit({ ...current, eli5: next });
+  }
+
   async function retryEli5Practice(): Promise<void> {
     if (busy || !current?.eli5?.html || !current.eli5.topic || !current.eli5.retryPractice) return;
-    const source = [...current.messages].reverse().find(message => message.role === "user");
-    const originalImages = source?.images ?? [];
+    const originalImages = recoverLessonImages(current);
+    if (!originalImages) {
+      commit({ ...current, eli5: { ...current.eli5, retryPractice: false, error: "原题图片无法完整恢复，请重新上传图片并提交题目。" } });
+      return;
+    }
     if (originalImages.length && !canVision) {
       commit({ ...current, eli5: { ...current.eli5, error: "这道题包含图片，请先选择支持图片的模型，再重新生成练习。" } });
       return;
@@ -363,7 +508,7 @@ export function LearnView(props: LearnViewProps) {
     let s = current;
     try {
       await runEli5Practice({
-        grade: s.grade, topic: current.eli5.topic, images: originalImages, ctx: pctx, signal: ac.signal,
+        grade: s.grade, topic: current.eli5.topic, images: originalImages, ctx: pctx, signal: ac.signal, textOnly: current.eli5.physicsTextOnly,
         initial: current.eli5, call: (messages, signal) => call(messages, false, signal),
         update: eli5 => { s = { ...s, eli5 }; commit(s); },
       });
@@ -382,6 +527,10 @@ export function LearnView(props: LearnViewProps) {
   /** 把文件压缩后加入待发送列表（点选 / 粘贴 / 拖入共用） */
   async function addFiles(files: File[]): Promise<void> {
     if (files.length === 0) return;
+    if (preparingImagesRef.current) {
+      setImgErr("正在处理上一批图片，请稍后再添加。");
+      return;
+    }
     if (!canVision) {
       setImgErr("当前模型不支持图片，请切换支持看图的模型（如 deepseek-flash、Qwen-VL）");
       return;
@@ -394,14 +543,21 @@ export function LearnView(props: LearnViewProps) {
     }
     if (files.length > room) setImgErr(`最多 ${MAX_IMAGES} 张图片，多出的已忽略`);
     const added: string[] = [];
-    for (const f of files.slice(0, room)) {
-      try {
-        added.push(await fileToDataUrl(f));
-      } catch (err) {
-        setImgErr(err instanceof Error ? err.message : "图片处理失败");
+    preparingImagesRef.current = true;
+    setPreparingImages(true);
+    try {
+      for (const f of files.slice(0, room)) {
+        try {
+          added.push(await fileToDataUrl(f));
+        } catch (err) {
+          setImgErr(err instanceof Error ? err.message : "图片处理失败");
+        }
       }
+      if (added.length > 0) setImages((prev) => [...prev, ...added].slice(0, MAX_IMAGES));
+    } finally {
+      preparingImagesRef.current = false;
+      setPreparingImages(false);
     }
-    if (added.length > 0) setImages((prev) => [...prev, ...added].slice(0, MAX_IMAGES));
   }
 
   /** 选择图片：压缩后加入待发送列表（最多 MAX_IMAGES 张） */
@@ -413,6 +569,7 @@ export function LearnView(props: LearnViewProps) {
 
   // 支持 Ctrl+V 粘贴剪贴板里的图片（截图/复制图片后直接粘贴）
   useEffect(() => {
+    if (!active) return;
     function onPaste(e: ClipboardEvent): void {
       if (document.querySelector(".overlay")) return; // 弹窗打开时不拦截
       const items = e.clipboardData?.items;
@@ -431,14 +588,19 @@ export function LearnView(props: LearnViewProps) {
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canVision, images.length]);
+  }, [active, canVision, images.length]);
 
   async function handleSend(): Promise<void> {
     const text = input.trim();
     if (busy) return;
+    if (preparingImagesRef.current) return;
     if (!text && images.length === 0) return;
     if (!model || !apiKey || !base) {
       goSettings();
+      return;
+    }
+    if (images.length > 0 && !canVision) {
+      setImgErr("当前模型不支持图片，请切换支持图片的模型后再发送。");
       return;
     }
     const padded = images.length > 0 && !text ? "请讲解这张图片里的题目。" : text;
@@ -500,7 +662,7 @@ export function LearnView(props: LearnViewProps) {
   const useGrade: Grade = current?.grade ?? prefs.grade;
 
   return (
-    <div className="learn">
+    <div className="learn" style={active ? undefined : { display: "none" }}>
       {/* ---- 侧栏 ---- */}
       <aside className="sidebar">
         <div className="seg-label">学段（在系统设置中修改）</div>
@@ -525,6 +687,7 @@ export function LearnView(props: LearnViewProps) {
               <button
                 className="session-del"
                 title="删除"
+                disabled={busy}
                 onClick={() => {
                   if (confirm(`删除「${s.title || "新的学习"}」？不可恢复。`)) onDeleteSession(s.id);
                 }}
@@ -600,7 +763,7 @@ export function LearnView(props: LearnViewProps) {
             <button className="btn-send setup-go" onClick={goSettings}>
               去系统设置配置 →
             </button>
-            <p className="setup-note">🔒 API Key 只保存在这台设备的浏览器里，不会上传到任何服务器。</p>
+            <p className="setup-note">🔒 API Key 保存在本机浏览器；使用模型时会随请求发送给所选服务，如启用代理也会经过代理。</p>
           </div>
         ) : !current ? (
           <div className="no-session">
@@ -635,7 +798,7 @@ export function LearnView(props: LearnViewProps) {
           </div>
         ) : (
           <div className="chat-layout single">
-            <Eli5View eli5={current.eli5} busy={busy} onRetryPractice={() => void retryEli5Practice()} />
+            <Eli5View eli5={current.eli5} busy={busy} onRetryLesson={() => void retryEli5Lesson()} onRetryPractice={() => void retryEli5Practice()} onRetryPhysicsExplanation={() => void retryPhysicsExplanation()} onSkipPhysicsExplanation={() => void skipPhysicsExplanation()} onContinueUnverified={() => void continueEli5Unverified()} physicsRetryEnabled={import.meta.env.DEV || __PHYSICS_PREVIEW__} />
             {!current.eli5 || current.eli5.stage === "idle" ? (
               <div className="welcome">
                 <div className="welcome-emoji"><i className="ti ti-palette" aria-hidden="true"></i></div>
@@ -674,6 +837,7 @@ export function LearnView(props: LearnViewProps) {
             </div>
           )}
           {imgErr && <p className="attach-err">⚠ {imgErr}</p>}
+          {preparingImages && <p className="attach-processing" role="status">正在处理图片，请稍候…</p>}
           <div className="composer">
             <div className="composer-box">
               <textarea
@@ -702,7 +866,7 @@ export function LearnView(props: LearnViewProps) {
                 <span className="composer-tip">{canVision ? "可 Ctrl+V 粘贴题目照片" : ""}</span>
                 <div className="composer-right">
                   {model && (
-                    <ModelSelect compact settings={settings} value={model} onChange={setModelOverride} />
+                    <ModelSelect compact settings={settings} value={model} onChange={(next) => { setModelOverride(next); setImgErr(null); }} />
                   )}
                   {busy ? (
                     <button className="btn-send stop" onClick={handleStop} title="停止生成">
@@ -712,7 +876,7 @@ export function LearnView(props: LearnViewProps) {
                     <button
                       className="btn-send"
                       onClick={() => void handleSend()}
-                      disabled={(!input.trim() && images.length === 0) || !model}
+                      disabled={preparingImages || (!input.trim() && images.length === 0) || !model}
                     >
                       发送
                     </button>

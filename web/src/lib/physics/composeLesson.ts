@@ -4,14 +4,19 @@ import { validateHanging, verifyHangingResult } from "./hanging";
 
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+/** Keep the static Typst drawing, while removing its hidden text layer and scripts. */
+export function sanitizePhysicsSvg(svg: string): string {
+  if (/<\s*script\b[^>]*\bsrc\s*=/i.test(svg)) throw new Error("物理图包含外部脚本");
+  const graphic = svg.replace(/<foreignObject\b[^>]*>[\s\S]*?<\/foreignObject\s*>/gi, "").replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
+  if (!/^\s*<svg\b/i.test(graphic) || !/<\/svg>\s*$/i.test(graphic) || /<\s*(?:script|foreignObject|iframe)\b|\son\w+\s*=|javascript:|\s(?:href|xlink:href|src)\s*=\s*["']\s*(?:https?:|\/\/|data:)/i.test(graphic)) throw new Error("物理图格式不安全");
+  return graphic;
+}
+
 /** 原型模板：图和说明来自同一已校验模型；调用方仍需确认模型与题面一致。 */
 export function composeInclineLesson(input: unknown, result: unknown, svg: string): string {
   const checked = validateSmoothIncline(input);
   if (!checked.ok || !verifyInclineResult(checked.model, result)) throw new Error("物理结果未通过检查");
-  // Typst 包含供选择文字用的隐藏层和脚本；沙箱展示只保留静态字形和图外图例。
-  if (/<\s*script\b/i.test(svg) && /<\s*script\b[^>]*\bsrc\s*=/i.test(svg)) throw new Error("物理图包含外部脚本");
-  const graphic = svg.replace(/<foreignObject\b[^>]*>[\s\S]*?<\/foreignObject\s*>/gi, "").replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
-  if (!/^\s*<svg\b/i.test(graphic) || !/<\/svg>\s*$/i.test(graphic) || /<\s*(?:script|foreignObject|iframe)\b|\son\w+\s*=|javascript:|\s(?:href|xlink:href|src)\s*=\s*["']\s*(?:https?:|\/\/|data:)/i.test(graphic)) throw new Error("物理图格式不安全");
+  const graphic = sanitizePhysicsSvg(svg);
   const m = checked.model;
   const r = result as { normal: number; acceleration: number };
   const fmt = (n: number) => Number(n.toPrecision(4)).toString();
@@ -27,9 +32,7 @@ body{font:18px/1.6 system-ui,sans-serif;color:#1d3330;margin:0;padding:24px}main
 export function composeHangingLesson(input: unknown, result: unknown, svg: string): string {
   const checked = validateHanging(input);
   if (!checked.ok || !verifyHangingResult(checked.model, result)) throw new Error("物理结果未通过检查");
-  if (/<\s*script\b[^>]*\bsrc\s*=/i.test(svg)) throw new Error("物理图包含外部脚本");
-  const graphic = svg.replace(/<foreignObject\b[^>]*>[\s\S]*?<\/foreignObject\s*>/gi, "").replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
-  if (!/^\s*<svg\b/i.test(graphic) || !/<\/svg>\s*$/i.test(graphic) || /<\s*(?:script|foreignObject|iframe)\b|\son\w+\s*=|javascript:|\s(?:href|xlink:href|src)\s*=\s*["']\s*(?:https?:|\/\/|data:)/i.test(graphic)) throw new Error("物理图格式不安全");
+  const graphic = sanitizePhysicsSvg(svg);
   const model = checked.model;
   const tension = (result as { tension: number }).tension;
   const assumptionText = checked.assumptions.length ? "重力加速度为补充假设，请先确认。" : "";

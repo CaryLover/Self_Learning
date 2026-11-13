@@ -16,10 +16,12 @@
 import http from "node:http";
 
 const PORT = Number(process.env.PORT || 8791);
+const DELAY_MS = Math.max(0, Math.min(30000, Number(process.env.MOCK_DELAY_MS) || 0));
 
 let lastSystemPrompt = "";
 let lastMessageCount = 0;
 let lastImageParts = 0;
+let resourceProbeRequests = 0;
 const recentRequests = []; // 最近几次请求的摘要（联调验证用）
 
 const CORS = {
@@ -100,12 +102,20 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (url.pathname === "/__resource-probe") {
+    resourceProbeRequests++;
+    res.writeHead(204, CORS);
+    res.end();
+    return;
+  }
+
   // 调试端点：回显最近一次请求的系统提示词（仅本地联调使用）
   if (url.pathname === "/__last-prompt") {
     return json(res, 200, {
       system: lastSystemPrompt,
       messageCount: lastMessageCount,
       imageParts: lastImageParts,
+      resourceProbeRequests,
       recentRequests,
     });
   }
@@ -125,6 +135,7 @@ const server = http.createServer((req, res) => {
     req.on("data", (c) => (body += c));
     req.on("end", async () => {
       if (!hasKey) return json(res, 401, { error: { message: "missing api key" } });
+      if (DELAY_MS) await new Promise(resolve => setTimeout(resolve, DELAY_MS));
       let parsed = {};
       try {
         parsed = JSON.parse(body);
@@ -146,19 +157,29 @@ const server = http.createServer((req, res) => {
         systemMentionsImages: /关于图片|图片输入/.test(sys),
         stream: !!parsed.stream,
         viaProxy: url.pathname === "/proxy",
+        kind: sys.includes("提取题目中的单物体光滑固定斜面模型") ? "physics-extraction" : sys.includes("物理事实组织图解讲解") ? "physics-eli5" : sys.includes("巩固练习") ? "practice" : sys.includes("画图讲解") ? sys.includes("不绘制图形") ? "eli5-text" : "eli5" : "other",
       });
       if (recentRequests.length > 10) recentRequests.shift();
 
       let reply;
       if (sys.includes("提取题目中的单物体光滑固定斜面模型")) {
         const question = history.findLast(m => m.role === "user")?.content ?? "";
-        const excerpts = { massKg: "质量4 kg", angleDeg: "30°", gravity: "9.81", surface: "固定光滑斜面", extraForces: "只受重力和支持力" };
+        const excerpts = { massKg: "质量4 kg", angleDeg: "30°", gravity: "9.81 m/s²", surface: "固定光滑斜面", extraForces: "只受重力和支持力" };
         const candidate = typeof question === "string" && Object.values(excerpts).every(e => question.includes(e));
-        const hangingEvidence = { massKg: "质量2 kg", gravity: "10", motion: "悬挂并静止", rope: "固定、竖直绷紧的绳", extraForces: "只受重力和绳的拉力" };
+        const hangingEvidence = { massKg: "质量2 kg", gravity: "10 m/s²", motion: "悬挂并静止", rope: "固定、竖直绷紧的绳", extraForces: "只受重力和绳的拉力" };
         const hanging = typeof question === "string" && Object.values(hangingEvidence).every(e => question.includes(e));
-        reply = JSON.stringify(candidate ? { status: "candidate", evidence: excerpts, model: { kind: "smooth-incline", objectName: "A", massKg: { value: 4, source: "stated" }, angleDeg: { value: 30, source: "stated" }, gravity: { value: 9.81, source: "stated" }, surface: { value: "fixed-smooth", source: "stated" }, extraForces: { value: "none", source: "stated" }, requested: ["forces", "normal", "acceleration"] } } : hanging ? { status: "candidate", evidence: hangingEvidence, model: { kind: "hanging-at-rest", objectName: "B", massKg: { value: 2, source: "stated" }, gravity: { value: 10, source: "stated" }, motion: { value: "rest", source: "stated" }, rope: { value: "vertical-taut-fixed", source: "stated" }, extraForces: { value: "none", source: "stated" }, requested: ["forces", "tension"] } } : { status: "needs_review" });
+        const circuitEvidence = { voltage: "12V", topology: "R2与R3并联后与R1串联", resistors: { R1: "R1为3Ω", R2: "R2为6Ω", R3: "R3为6Ω" } };
+        const circuit = typeof question === "string" && question.includes("理想直流电源") && question.includes("纯电阻") && [circuitEvidence.voltage, circuitEvidence.topology, ...Object.values(circuitEvidence.resistors)].every(text => question.includes(text));
+        let extraction = { status: "needs_review" };
+        if (candidate) extraction = { status: "candidate", evidence: excerpts, model: { kind: "smooth-incline", objectName: "A", massKg: { value: 4, source: "stated" }, angleDeg: { value: 30, source: "stated" }, gravity: { value: 9.81, source: "stated" }, surface: { value: "fixed-smooth", source: "stated" }, extraForces: { value: "none", source: "stated" }, requested: ["forces", "normal", "acceleration"] } };
+        else if (hanging) extraction = { status: "candidate", evidence: hangingEvidence, model: { kind: "hanging-at-rest", objectName: "B", massKg: { value: 2, source: "stated" }, gravity: { value: 10, source: "stated" }, motion: { value: "rest", source: "stated" }, rope: { value: "vertical-taut-fixed", source: "stated" }, extraForces: { value: "none", source: "stated" }, requested: ["forces", "tension"] } };
+        else if (circuit) extraction = { status: "candidate", evidence: circuitEvidence, model: { kind: "resistive-circuit", voltage: 12, requested: ["equivalent", "current"], network: { kind: "series", children: [{ kind: "resistor", id: "R1", resistance: 3 }, { kind: "parallel", children: [{ kind: "resistor", id: "R2", resistance: 6 }, { kind: "resistor", id: "R3", resistance: 6 }] }] } } };
+        else if (sys.includes('status":"not_applicable') && /先乘除后加减|光合作用|诗歌比喻|二次函数/.test(question)) extraction = { status: "not_applicable" };
+        else if (sys.includes('status":"unsupported') && /热传导/.test(question)) extraction = { status: "unsupported" };
+        reply = JSON.stringify(extraction);
       }
-      else if (sys.includes("画图讲解")) reply = "```html\n" + ELI5_HTML + "\n```";
+      else if (sys.includes("物理事实组织图解讲解")) reply = JSON.stringify(sys.includes("电阻名称") ? { status: "ok", intro: "先找到电源和R1。", steps: ["看清R2和R3怎样连接。", "先把并联部分看作整体。"], summary: "结合连接关系理解整个电路。" } : { status: "ok", intro: "先看看图中研究的是哪个物体。", steps: ["观察每个箭头表示的作用。", "结合题目条件理解这些作用之间的关系。"], summary: "先读懂条件，再结合图中的结果思考。" });
+      else if (sys.includes("画图讲解")) reply = "```html\n" + (sys.includes("不绘制图形") ? '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"></head><body><p>热传导是由于温差产生的能量传递。</p></body></html>' : ELI5_HTML) + "\n```";
       else if (sys.includes("巩固练习")) reply = "```json\n" + JSON.stringify(PRACTICES) + "\n```";
       else if (sys.includes("苏格拉底")) reply = socraticReply(history);
       else reply = "你好！我是模拟厂商。";
@@ -188,5 +209,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, "127.0.0.1", () => {
-  console.log(`mock vendor listening on http://127.0.0.1:${PORT}`);
+  console.log(`mock vendor listening on http://127.0.0.1:${server.address().port}`);
 });

@@ -8,12 +8,12 @@ const DIFF_LABEL: Record<PracticeItem["difficulty"], string> = {
   培优: "培优 · 挑战",
 };
 
-function Md({ text }: { text: string }) {
-  const html = useMemo(() => renderMarkdown(text), [text]);
+function Md({ text, textOnly }: { text: string; textOnly?: boolean }) {
+  const html = useMemo(() => renderMarkdown(text, { textOnly }), [text, textOnly]);
   return <div className="md" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-export function PracticeCards({ items }: { items: PracticeItem[] }) {
+export function PracticeCards({ items, textOnly }: { items: PracticeItem[]; textOnly?: boolean }) {
   if (!items.length) return null;
   return (
     <section className="practice">
@@ -29,13 +29,13 @@ export function PracticeCards({ items }: { items: PracticeItem[] }) {
               <span className="practice-no">第 {i + 1} 题</span>
             </div>
             <div className="practice-q">
-              <Md text={it.question} />
+              <Md text={it.question} textOnly={textOnly} />
             </div>
             <details>
               <summary>参考答案与解析</summary>
               <div className="practice-answer">
-                <Md text={`**参考答案：** ${it.answer}`} />
-                {it.analysis && <Md text={`**解析：** ${it.analysis}`} />}
+                <Md text={`**参考答案：** ${it.answer}`} textOnly={textOnly} />
+                {it.analysis && <Md text={`**解析：** ${it.analysis}`} textOnly={textOnly} />}
               </div>
             </details>
           </li>

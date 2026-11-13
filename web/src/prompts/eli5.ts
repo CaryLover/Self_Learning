@@ -47,7 +47,7 @@ const GRADE_PROFILE: Record<Grade, { tone: string; visual: string; limit: string
  * 第一段：生成讲解页。
  * 要求输出完整 HTML 文档（内嵌 SVG、无外部资源、无脚本），前端在 sandbox iframe 中渲染。
  */
-export function buildEli5ExplainMessages(grade: Grade, topic: string, ctx: PromptCtx = {}) {
+export function buildEli5ExplainMessages(grade: Grade, topic: string, ctx: PromptCtx = {}, options: { textOnly?: boolean } = {}) {
   const p = GRADE_PROFILE[grade];
   const who = ctx.nickname ? `- 称呼：${ctx.nickname}\n` : "";
   return [
@@ -66,11 +66,11 @@ ${curriculumRule(grade, ctx.gradeLevel)}
 只输出一个完整 HTML 文档，用 \`\`\`html 围栏包裹，不要输出任何其他文字。要求：
 1. 完整的 <!DOCTYPE html> 文档，<html lang="zh-CN">，内嵌 <style>；
 2. 页面最多宽 860px、居中、自适应手机屏幕；大字号（正文≥16px，重点词更大）；
-3. 默认结构：一句话介绍问题、用图逐步解释、少量简短要点和总结；可按主题调整顺序，使用分步图或对比图；
-4. SVG 必须内嵌在 HTML 里（<svg viewBox=...>），图要足够大、字少、一图一意；图例放在图外并参与正常排版，不遮挡图形；
+3. ${options.textOnly ? "用少量简短要点逐步解释，不绘制图形，不擅自编造题目条件或给出无法核实的数值结论；" : "默认结构：一句话介绍问题、用图逐步解释、少量简短要点和总结；可按主题调整顺序，使用分步图或对比图；"}
+4. ${options.textOnly ? "当前图形无法由物理工具核对，只输出文字，不使用 SVG、canvas、img、图像、图表或箭头绘图；" : "SVG 必须内嵌在 HTML 里（<svg viewBox=...>），图要足够大、字少、一图一意；图例放在图外并参与正常排版，不遮挡图形；"}
 5. 禁止：外部资源（<img src="http...">、外链字体、CDN）、任何 <script>、任何交互事件；数学公式用普通文字写（如"1/2 × 底 × 高"，不要用 LaTeX 语法）；
 6. 配色方案：${p.visual}
-7. SVG 中文文字用 <text> 元素，注意不要被裁剪（预留空间）。
+7. ${options.textOnly ? "用简短句子解释，不画受力图或电路图。" : "SVG 中文文字用 <text> 元素，注意不要被裁剪（预留空间）。"}
 8. 在 <head> 中加入状态标记：可以正常解释时使用 <meta name="eli5-input-status" content="ready">；如果图片看不清或题目缺少必须条件，使用 <meta name="eli5-input-status" content="needs-clarification">，并在页面正文说明需要补充什么，不要编造条件或给出确定答案。
 
 【关于图片】如果孩子提供了题目/图表照片，请先读懂图片中的文字、数字与图形再讲解；图片模糊或信息不全时，在讲解页里说明需要补充什么，不要凭空猜测题目。
@@ -86,6 +86,7 @@ export function buildEli5PracticeMessages(
   topic: string,
   explainDigest: string,
   ctx: PromptCtx = {},
+  options: { textOnly?: boolean } = {},
 ) {
   const p = GRADE_PROFILE[grade];
   return [
@@ -103,6 +104,7 @@ ${curriculumRule(grade, ctx.gradeLevel)}
 3. 每题给出参考答案与简要解析（孩子做完自己核对）；
 4. 数学公式用普通文字写（如 x^2、1/2、√2，不要用 LaTeX）。
 5. 如果提供了原始题目图片，可结合图片和讲解核对已知条件；看不清、缺失或矛盾的条件不得猜测。练习应自包含，不能要求学生重新查看原图才能做题。
+${options.textOnly ? "6. 当前物理图形无法由工具核对。所有题面、答案和解析只用文字，不要生成或引用图片、图表、HTML、SVG、Markdown 图片或外部资源；不要编造题目条件。" : ""}
 
 【输出格式（严格遵守）】
 只输出一个 JSON 数组，用 \`\`\`json 围栏包裹，不要输出任何其他文字：
