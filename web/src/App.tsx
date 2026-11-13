@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import type { Grade, Mode, Session, Settings } from "./lib/types";
 import { loadSettings, loadUiPrefs, saveSettings, saveUiPrefs, type UiPrefs } from "./lib/store";
 import { deleteSession, getSession, listSessions, putSession } from "./lib/db";
 import { uid } from "./lib/id";
 import { recoverSession } from "./lib/recoverSession";
 import { LearnView } from "./components/LearnView";
-import { SettingsView } from "./components/SettingsView";
 import { OnboardingDialog } from "./components/OnboardingDialog";
+
+const SettingsView = lazy(() => import("./components/SettingsView").then((module) => ({ default: module.SettingsView })));
 
 type Page = "learn" | "settings";
 /** startup：每次打开网站时先弹出（预填已保存信息）；edit：点顶栏「修改」打开 */
@@ -208,15 +209,17 @@ export default function App() {
         goSettings={() => goPage("settings")}
       />
       {page === "settings" && (
-        <SettingsView
-          settings={settings}
-          grade={prefs.grade}
-          onGradeChange={(grade) => onChangePrefs({ ...prefs, grade })}
-          theme={prefs.theme}
-          onThemeChange={(theme) => onChangePrefs({ ...prefs, theme })}
-          onChange={onChangeSettings}
-          goLearn={() => goPage("learn")}
-        />
+        <Suspense fallback={<div className="report-busy">正在加载设置…</div>}>
+          <SettingsView
+            settings={settings}
+            grade={prefs.grade}
+            onGradeChange={(grade) => onChangePrefs({ ...prefs, grade })}
+            theme={prefs.theme}
+            onThemeChange={(theme) => onChangePrefs({ ...prefs, theme })}
+            onChange={onChangeSettings}
+            goLearn={() => goPage("learn")}
+          />
+        </Suspense>
       )}
 
       {onboardMode && (

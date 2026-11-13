@@ -2,7 +2,7 @@
  * 学习页：会话管理 + 两种模式的调用编排（ELI5 两段式 / 苏格拉底循环）
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMessage, ChatMsg, ContentPart, Grade, Mode, Session, Settings, SkillMap, Turn } from "../lib/types";
 import { MODE_LABEL, GRADE_LABEL } from "../lib/types";
 import { pickModel, resolveBase, visibleModels, type UiPrefs, type VisibleModel } from "../lib/store";
@@ -16,8 +16,11 @@ import { recoverLessonImages } from "../lib/sessionImages";
 import { buildSocraticSystem, buildEndSessionMessage } from "../prompts/socratic";
 import { dailyTip } from "../lib/encourage";
 import { effectiveVision, fileToDataUrl, MAX_IMAGES } from "../lib/vision";
-import { ChatView, ChatSidePanel } from "./ChatView";
-import { Eli5View } from "./Eli5View";
+
+// 讲解与苏格拉底界面按需加载：首屏不下载 KaTeX、练习卡和聊天组件。
+const ChatView = lazy(() => import("./ChatView").then((module) => ({ default: module.ChatView })));
+const ChatSidePanel = lazy(() => import("./ChatView").then((module) => ({ default: module.ChatSidePanel })));
+const Eli5View = lazy(() => import("./Eli5View").then((module) => ({ default: module.Eli5View })));
 
 const MODES: Mode[] = ["eli5", "socratic"];
 /** 记录最近一次 401/403 的模型，用于持续提示"密钥无效" */
@@ -826,45 +829,49 @@ export function LearnView(props: LearnViewProps) {
             </div>
           </div>
         ) : isSocratic ? (
-          <div className="chat-layout">
-            <ChatView
-              messages={current.messages}
-              streamText={streamText}
-              busy={busy}
-              reportBusy={reportBusy}
-              skillMap={current.skillMap}
-              report={current.report}
-              showMap={!!current.skillMap}
-              reportMeta={{ nickname: settings.profile.nickname || undefined, gradeLabel: GRADE_LABEL[useGrade] }}
-              onEnd={() => void endSession()}
-              onStop={handleStop}
-            />
-            <div className="chat-side">
-              <ChatSidePanel
-                skillMap={current.skillMap}
-                ended={!!current.report}
-                onEnd={() => void endSession()}
+          <Suspense fallback={<div className="report-busy">正在加载辅导界面…</div>}>
+            <div className="chat-layout">
+              <ChatView
+                messages={current.messages}
+                streamText={streamText}
                 busy={busy}
+                reportBusy={reportBusy}
+                skillMap={current.skillMap}
+                report={current.report}
+                showMap={!!current.skillMap}
+                reportMeta={{ nickname: settings.profile.nickname || undefined, gradeLabel: GRADE_LABEL[useGrade] }}
+                onEnd={() => void endSession()}
+                onStop={handleStop}
               />
-            </div>
-          </div>
-        ) : (
-          <div className="chat-layout single">
-            <Eli5View eli5={current.eli5} busy={busy} onRetryLesson={() => void retryEli5Lesson()} onRetryPractice={() => void retryEli5Practice()} onSkipPractice={skipEli5Practice} onRetryPhysicsExplanation={() => void retryPhysicsExplanation()} onSkipPhysicsExplanation={() => void skipPhysicsExplanation()} onContinueUnverified={() => void continueEli5Unverified()} onEditTopic={canEditTopic ? editTopic : undefined} physicsRetryEnabled={import.meta.env.DEV || __PHYSICS_PREVIEW__} />
-            {!current.eli5 || current.eli5.stage === "idle" ? (
-              <div className="welcome">
-                <div className="welcome-emoji"><i className="ti ti-palette" aria-hidden="true"></i></div>
-                <h2>看图讲解</h2>
-                <p>输入一个题目或知识点，老师会画一张大图讲给你懂，再出几道练习帮你巩固。</p>
-                <div className="steps">
-                  <span>① 输入题目</span>
-                  <span>② 看大图听讲解</span>
-                  <span>③ 做练习涨本领</span>
-                </div>
-                <p className="tip-line">💡 {dailyTip()}</p>
+              <div className="chat-side">
+                <ChatSidePanel
+                  skillMap={current.skillMap}
+                  ended={!!current.report}
+                  onEnd={() => void endSession()}
+                  busy={busy}
+                />
               </div>
-            ) : null}
-          </div>
+            </div>
+          </Suspense>
+        ) : (
+          <Suspense fallback={<div className="report-busy">正在加载讲解界面…</div>}>
+            <div className="chat-layout single">
+              <Eli5View eli5={current.eli5} busy={busy} onRetryLesson={() => void retryEli5Lesson()} onRetryPractice={() => void retryEli5Practice()} onSkipPractice={skipEli5Practice} onRetryPhysicsExplanation={() => void retryPhysicsExplanation()} onSkipPhysicsExplanation={() => void skipPhysicsExplanation()} onContinueUnverified={() => void continueEli5Unverified()} onEditTopic={canEditTopic ? editTopic : undefined} physicsRetryEnabled={import.meta.env.DEV || __PHYSICS_PREVIEW__} />
+              {!current.eli5 || current.eli5.stage === "idle" ? (
+                <div className="welcome">
+                  <div className="welcome-emoji"><i className="ti ti-palette" aria-hidden="true"></i></div>
+                  <h2>看图讲解</h2>
+                  <p>输入一个题目或知识点，老师会画一张大图讲给你懂，再出几道练习帮你巩固。</p>
+                  <div className="steps">
+                    <span>① 输入题目</span>
+                    <span>② 看大图听讲解</span>
+                    <span>③ 做练习涨本领</span>
+                  </div>
+                  <p className="tip-line">💡 {dailyTip()}</p>
+                </div>
+              ) : null}
+            </div>
+          </Suspense>
         )}
 
         {/* 输入区（Codex 式：输入框底栏放模型与发送） */}
