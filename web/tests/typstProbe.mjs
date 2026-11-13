@@ -77,9 +77,11 @@ console.log('Unsupported contact model correctly declined');
 // The library's hanging-body model assumes rest; only test it under an explicit rest condition.
 const hangingModel = { kind: 'hanging-at-rest', objectName: 'A', massKg: { value: 2, source: 'stated' }, gravity: { value: 10, source: 'stated' }, motion: { value: 'rest', source: 'stated' }, rope: { value: 'vertical-taut-fixed', source: 'stated' }, extraForces: { value: 'none', source: 'stated' }, requested: ['forces', 'tension'] };
 const hangingPrepared = makeHangingSource(hangingModel);
+assert.match(hangingPrepared.source, /rope\("cord", from: "top", to: "A\.top"\)/);
 const hangingSource = '#set page(width: auto, height: auto, margin: 10pt)\n#set text(font: "New Computer Modern")\n#show math.equation: set text(font: "New Computer Modern Math")\n' + hangingPrepared.source;
 const hangingSvg = await $typst.svg({ mainContent: hangingSource });
 assert.ok(hangingSvg.startsWith('<svg'));
+assert.match(hangingSvg, /class="typst-shape" d="M 0 0 M 0 0 L 0 \d+(?:\.\d+)?\s*"[^>]*stroke="#495057"/);
 cc.addSource('/hanging.typ', hangingSource);
 const hanging = await cc.runWithWorld({ mainFilePath: '/hanging.typ' }, async world => { await world.compile(); return world.query({ selector: '<physics-result>', field: 'value' }); });
 assert.equal(hanging[0].model, 'hanging-body');

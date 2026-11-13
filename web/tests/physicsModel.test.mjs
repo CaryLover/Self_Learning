@@ -112,6 +112,7 @@ try {
   assert.equal(validateHanging({ ...hanging, motion: { value: 'rest', source: 'assumed' } }).ok, false);
   assert.equal(validateHanging({ ...hanging, rope: { value: 'vertical-taut-fixed', source: 'assumed' } }).ok, false);
   assert.throws(() => makeHangingSource({ ...hanging, motion: { value: 'moving', source: 'stated' } }));
+  assert.match(makeHangingSource(hanging).source, /rope\("cord", from: "top", to: "A\.top"\)/);
   const hangingForces = [{ role: 'weight', direction: [0, -1] }, { role: 'tension', direction: [0, 1] }];
   assert.equal(verifyHangingResult(hanging, { status: 'solved', model: 'hanging-body', tension: 20, forces: hangingForces }), true);
   assert.equal(verifyHangingResult(hanging, { status: 'solved', model: 'hanging-body', tension: 19 }), false);
