@@ -61,7 +61,12 @@ export function ChatView({
           <p className="tip-line">💡 {dailyTip()}</p>
         </div>
       )}
-      <div className="msg-list" role="log" aria-live="polite" aria-relevant="additions text">
+      {busy && (
+        <p className="sr-only" role="status">
+          {streamText ? "老师正在回复…" : "老师正在思考…"}
+        </p>
+      )}
+      <div className="msg-list" role="log" aria-live="polite" aria-relevant="additions text" aria-busy={busy}>
         {messages.map((m, i) => (
           <Fragment key={m.id}>
             <MessageBubble msg={m} />
@@ -70,7 +75,7 @@ export function ChatView({
             )}
           </Fragment>
         ))}
-        {streamingMsg && <MessageBubble msg={streamingMsg} streaming />}
+        {streamingMsg && <MessageBubble msg={streamingMsg} streaming ariaHidden />}
         {reportBusy && <div className="report-busy" role="status">正在为你生成本次掌握报告…</div>}
       </div>
       {report && <MasteryReportCard report={report} nickname={reportMeta?.nickname} gradeLabel={reportMeta?.gradeLabel} topic={skillMap?.topic} />}

@@ -768,6 +768,13 @@ export function LearnView(props: LearnViewProps) {
                 id={`mode-tab-${m}`}
                 className={`seg${useMode === m ? " active" : ""}`}
                 onClick={() => switchMode(m)}
+                onKeyDown={(e) => {
+                  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+                  e.preventDefault();
+                  const next: Mode = m === "eli5" ? "socratic" : "eli5";
+                  switchMode(next);
+                  requestAnimationFrame(() => document.getElementById(`mode-tab-${next}`)?.focus());
+                }}
                 disabled={busy}
                 role="tab"
                 aria-selected={useMode === m}

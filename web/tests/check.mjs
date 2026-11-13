@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 const checks = [
   "eli5Pipeline.test.mjs",
   "eli5View.test.mjs",
+  "chatA11y.test.mjs",
   "sessionData.test.mjs",
   "socraticReport.test.mjs",
   "apiRequests.test.mjs",
