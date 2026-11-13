@@ -29,6 +29,32 @@ try {
   saveSettings(old);
   assert.equal(loadSettings().proxyUrl, DEFAULT_PROXY_URL);
   assert.equal(saveSettings(loadSettings()), true);
+  // 兼容损坏存档：profile 里嵌套了整份 settings，根上又出现 gradeLevel/nickname 等对象。
+  const good = loadSettings();
+  const nested = {
+    ...good,
+    profile: { nickname: '阳阳', avatar: '🐼', onboarded: true, gradeLevel: '四年级' },
+    providers: {
+      ...good.providers,
+      deepseek: { ...good.providers.deepseek, enabled: true, apiKey: 'sk-test-0123456789', defaultModel: 'deepseek-flash' },
+    },
+    proxyUrl: 'https://relay.oj-codes.com',
+  };
+  storage.set('zxz.settings.v1', JSON.stringify({ profile: nested, gradeLevel: nested, nickname: nested, onboarded: nested, providers: nested.providers, proxyUrl: nested.proxyUrl }));
+  const repaired = loadSettings();
+  assert.equal(repaired.profile.nickname, '阳阳');
+  assert.equal(repaired.profile.gradeLevel, '四年级');
+  assert.equal(repaired.profile.onboarded, true);
+  assert.equal(repaired.profile.profile, undefined);
+  assert.equal(repaired.providers.deepseek.apiKey, 'sk-test-0123456789');
+  assert.equal(repaired.providers.deepseek.defaultModel, 'deepseek-flash');
+  assert.equal(repaired.proxyUrl, 'https://relay.oj-codes.com');
+  // providers/proxyUrl 只在嵌套对象里时也要能恢复。
+  storage.set('zxz.settings.v1', JSON.stringify({ profile: nested }));
+  const fromNested = loadSettings();
+  assert.equal(fromNested.profile.nickname, '阳阳');
+  assert.equal(fromNested.providers.deepseek.apiKey, 'sk-test-0123456789');
+  assert.equal(fromNested.proxyUrl, 'https://relay.oj-codes.com');
   assert.equal(saveUiPrefs({ grade: 'primary', mode: 'eli5', theme: 'light' }), true);
   globalThis.localStorage = { getItem: () => null, setItem: () => { throw new Error('storage blocked'); }, removeItem: () => {} };
   assert.equal(saveSettings(loadSettings()), false);

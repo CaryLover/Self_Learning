@@ -45,28 +45,50 @@ export function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultSettings();
-    const parsed = JSON.parse(raw) as Settings;
+    const parsed = JSON.parse(raw) as Settings & Record<string, unknown>;
     // 与预置清单合并：新增厂商/内置模型自动补齐，家长改动保留
     const base = defaultSettings();
+
+    // 兼容一种旧存档/测试数据损坏：profile 里又嵌套了一整份 settings。
+    // 只取真正的 profile 和 providers，避免把嵌套对象写进昵称、年级等字段。
+    const profileWrapper = parsed.profile as unknown as
+      | (Settings["profile"] & { profile?: Settings["profile"]; providers?: Settings["providers"]; proxyUrl?: string; proxyExplicit?: boolean })
+      | undefined;
+    const nestedProfile =
+      profileWrapper?.profile && typeof profileWrapper.profile === "object" ? profileWrapper.profile : null;
+    const profileSource = nestedProfile ?? parsed.profile;
+    const providersSource =
+      parsed.providers && typeof parsed.providers === "object" ? parsed.providers : profileWrapper?.providers;
+    const nestedProxyUrl = typeof profileWrapper?.proxyUrl === "string" ? profileWrapper.proxyUrl : undefined;
+    const proxyUrl = typeof parsed.proxyUrl === "string" ? parsed.proxyUrl : nestedProxyUrl;
+    const proxyExplicit = parsed.proxyExplicit === true || profileWrapper?.proxyExplicit === true;
+
     const merged: Settings = {
-      ...base,
-      ...parsed,
-      profile: { ...base.profile, ...parsed.profile },
+      profile: {
+        nickname: typeof profileSource?.nickname === "string" ? profileSource.nickname : base.profile.nickname,
+        avatar: typeof profileSource?.avatar === "string" ? profileSource.avatar : base.profile.avatar,
+        onboarded: profileSource?.onboarded === true,
+        ...(typeof profileSource?.gradeLevel === "string" && profileSource.gradeLevel
+          ? { gradeLevel: profileSource.gradeLevel }
+          : {}),
+      },
       providers: { ...base.providers },
       proxyUrl:
-        parsed.proxyExplicit && typeof parsed.proxyUrl === "string"
-          ? parsed.proxyUrl.trim()
-          : !parsed.proxyUrl?.trim() || parsed.proxyUrl.trim() === LEGACY_DEFAULT_PROXY
+        proxyExplicit && typeof proxyUrl === "string"
+          ? proxyUrl.trim()
+          : !proxyUrl?.trim() || proxyUrl.trim() === LEGACY_DEFAULT_PROXY
           ? base.proxyUrl // 旧存档为空或仍是旧默认地址 → 升级为当前默认
-          : parsed.proxyUrl.trim(),
+          : proxyUrl.trim(),
+      ...(proxyExplicit ? { proxyExplicit: true } : {}),
     };
     for (const p of PROVIDER_PRESETS) {
-      const saved = parsed.providers?.[p.id];
-      if (!saved) continue;
+      const saved = providersSource?.[p.id];
+      if (!saved || typeof saved !== "object") continue;
+      const savedModels = saved.models && typeof saved.models === "object" ? saved.models : {};
       merged.providers[p.id] = {
         ...base.providers[p.id],
         ...saved,
-        models: { ...base.providers[p.id].models, ...saved.models },
+        models: { ...base.providers[p.id].models, ...savedModels },
       };
     }
     return merged;
