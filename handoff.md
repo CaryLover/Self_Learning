@@ -14,7 +14,7 @@
 
 ### 2. 版本管理：先保护工作区
 
-- 2026-11-13 代码提交：`8aee16e 完善图片题条件核对与无障碍提示`；此前 `2f1cda9 完善跨学科图形选择与练习自包含`、`eafe784 加固会话恢复、存储与代理安全`、`747a6a8`。均位于分支 `eli5-physics-fusion`；`master` 仍停在 `969604b`，未自动合并。
+- 2026-11-13 代码提交：`8aee16e 完善图片题条件核对与无障碍提示`；此前 `2f1cda9 完善跨学科图形选择与练习自包含`、`eafe784 加固会话恢复、存储与代理安全`、`747a6a8`。同日稍后按用户明确指示把 `eli5-physics-fusion` 快进合并到 `master`（`1be7e65`）；`master` 现已包含全部功能，`eli5-physics-fusion` 保留。
 - 同日已按用户指示部署：前端 Pages 部署 `76b49aa4`（`https://76b49aa4.zixue-xiaozhan.pages.dev`），生产域 `zixue.oj-codes.com` / `zixue-xiaozhan.pages.dev`，主 bundle `index-Bql6Jja-.js`、CSS `index-CQ2cw51t.css`，按需加载 `PracticeCards-C8QOIt2m.js`、`Eli5View-CjdD25Tm.js`、`ChatView-W1pxpcCc.js`、`SettingsView-CPgs1tEq.js`，物理 worker 为 `physics.worker-B1dh5nZh.js`，线上 ELI5 提示词版本 `2.6`；生产构建已启用 `VITE_ENABLE_PHYSICS=true`，包含压缩编译器约 10.84 MB、修改版 typed-physics 计算包约 94 KB 和物理 worker；不再包含 CeTZ、oxifmt、Typst 渲染器 WASM 或 NewCM 字体。Pages `_headers` 已启用 nosniff、Referrer-Policy、`X-Frame-Options: DENY`、HSTS，以及 `/assets/*` 一年 immutable 缓存；KaTeX 已升级到 0.19.1，生产依赖审计 0 漏洞；Worker `zixue-relay` 本轮未改动，仍为 `2fcd4a44-c611-42ff-bee7-e7ecfea5f51a`。物理预览提示已从“仅供开发测试”改为中性的“仍需人工审核；当前只覆盖有限题型”；编译器/计算包下载增加 3 次短重试，缓解部署传播或网络抖动导致的首次失败。
 - 记录部署的文档修改通常比代码提交晚一个提交；以 `git log -2 --oneline` 为准。
 - 先运行 `git status --short`、`git log -2 --oneline` 和 `git diff` 熟悉现状；还要检查 `git status` 中的 `??` 新文件，普通 `git diff` 不包含它们。若把项目交给其他环境，请确保完整携带所有已修改及未跟踪的项目源文件；忽略目录和敏感配置按需单独处理，勿把 API key 等秘密写入提交。
@@ -211,7 +211,7 @@ cd web && npm run dev                                           # localhost:5173
 - 暗色模式已提供浅色/深色/跟随系统三档；旧会话和模型生成的讲解页仍按原内容显示。
 - **KI-001（未修复，用户要求后续再说）**：未切换年级时，初中物理“平均速度”问题仍会被回答，用户判定为超纲。详见 `docs/known-issues.md`；不要把现有提示词当成硬性年级边界。
 - **KI-002（已缓解，继续观察）**：物理编译器首次冷加载曾失败一次；已加 3 次短重试，仍需观察部署传播/首次访问。详见 `docs/known-issues.md`。
-- 2026-11-13 使用者已完成 A 手机、B 读屏、C 打印与缩放人工验收，未报告问题；记录见 `docs/acceptance-checklist.md` 第 3.5 节。剩余主要是更完整的独立模型评测和 `master` 合并决定。
+- 2026-11-13 使用者已完成 A 手机、B 读屏、C 打印与缩放人工验收，未报告问题；记录见 `docs/acceptance-checklist.md` 第 3.5 节。剩余主要是更完整的独立模型评测；`master` 已完成合并。
 - 曾出现"沉浸式翻译插件"注入按钮干扰布局 → 建议用户把本站加入插件忽略名单。
 - v1.1 候选（计划文档 §3.5）：拍题 OCR、语音输入、家长管控、多档案、在线批改、报告导出、用量统计。
 
