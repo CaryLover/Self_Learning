@@ -15,7 +15,7 @@
 ### 2. 版本管理：先保护工作区
 
 - 2026-11-13 代码提交：`8aee16e 完善图片题条件核对与无障碍提示`；此前 `2f1cda9 完善跨学科图形选择与练习自包含`、`eafe784 加固会话恢复、存储与代理安全`、`747a6a8`。均位于分支 `eli5-physics-fusion`；`master` 仍停在 `969604b`，未自动合并。
-- 同日已按用户指示部署：前端 Pages 部署 `fb3506d5`（`https://fb3506d5.zixue-xiaozhan.pages.dev`），生产域 `zixue.oj-codes.com` / `zixue-xiaozhan.pages.dev`，主 bundle `index-Bymf4hZx.js`、CSS `index-u5UlLPFP.css`，按需加载 `PracticeCards-DCrYlQVc.js`、`Eli5View-ClcLMjv0.js`、`ChatView-Bdeemw2F.js`、`SettingsView-BNXmYrDh.js`，线上 ELI5 提示词版本 `2.5`；Pages `_headers` 已启用 nosniff、Referrer-Policy、`X-Frame-Options: DENY`、HSTS，以及 `/assets/*` 一年 immutable 缓存；KaTeX 已升级到 0.19.1，生产依赖审计 0 漏洞；Worker `zixue-relay` 本轮未改动，仍为 `2fcd4a44-c611-42ff-bee7-e7ecfea5f51a`。默认构建不包含物理 Worker、物理字体/包和压缩编译器；包含报告打印、顶栏深浅色开关、未作答报告评分兜底、“首次发送才创建最近学习记录”，以及键盘跳转、弹窗焦点循环、标签页方向键、流式回复 `aria-busy` 等无障碍改动。
+- 同日已按用户指示部署：前端 Pages 部署 `96c8b2cc`（`https://96c8b2cc.zixue-xiaozhan.pages.dev`），生产域 `zixue.oj-codes.com` / `zixue-xiaozhan.pages.dev`，主 bundle `index-CFxkUWdm.js`、CSS `index-u5UlLPFP.css`，按需加载 `PracticeCards-BBzTAFgD.js`、`Eli5View-wTgSNH1r.js`、`ChatView-D5_niRr1.js`、`SettingsView-DP5JRwSE.js`，线上 ELI5 提示词版本 `2.6`；Pages `_headers` 已启用 nosniff、Referrer-Policy、`X-Frame-Options: DENY`、HSTS，以及 `/assets/*` 一年 immutable 缓存；KaTeX 已升级到 0.19.1，生产依赖审计 0 漏洞；Worker `zixue-relay` 本轮未改动，仍为 `2fcd4a44-c611-42ff-bee7-e7ecfea5f51a`。默认构建不包含物理 Worker、物理字体/包和压缩编译器；包含报告打印、顶栏深浅色开关、未作答报告评分兜底、“首次发送才创建最近学习记录”、键盘跳转/弹窗焦点/标签页方向键/流式回复 `aria-busy`，以及条件不足题的补充条件规则和损坏设置存档恢复。
 - 记录部署的文档修改通常比代码提交晚一个提交；以 `git log -2 --oneline` 为准。
 - 先运行 `git status --short`、`git log -2 --oneline` 和 `git diff` 熟悉现状；还要检查 `git status` 中的 `??` 新文件，普通 `git diff` 不包含它们。若把项目交给其他环境，请确保完整携带所有已修改及未跟踪的项目源文件；忽略目录和敏感配置按需单独处理，勿把 API key 等秘密写入提交。
 - 当前环境可以写入 `.git`；继续提交时沿用项目的中文提交习惯，保留已有历史。提交前已扫描常见的硬编码密钥模式，未发现真实密钥；仍不要提交 `.env`、真实 API key 等。若要把成果合回 `master`，需由用户确认后再操作。
@@ -23,7 +23,7 @@
 
 ### 3. 当前实现：以代码为准
 
-1. **通用 ELI5**：提示词分层，当前代码的新会话提示词版本为 `2.6`（本地/预览；线上部署仍为 `2.5`，2.6 尚未部署）；讲解与练习流程已抽离。支持图片传递、练习失败单独重试、生成中断恢复、条件不明时停止练习。提示词按学科选择图形形式，图片题先列出从图中读到的关键文字、数字和条件，练习题面要求自包含（拒绝“如图/图中/原题/原图”等依赖讲解页或图片的写法，不合规会有限重试）。练习检查的是标签和格式，不证明答案或实际难度正确。讲解页和练习设有超长输出上限，异常大的结果会先重试，仍不合规则提示重新生成；练习反复失败时可保留讲解、跳过练习结束本次学习。旧会话保留原版本。
+1. **通用 ELI5**：提示词分层，当前代码和线上部署的新会话提示词版本均为 `2.6`；讲解与练习流程已抽离。支持图片传递、练习失败单独重试、生成中断恢复、条件不明时停止练习。提示词按学科选择图形形式，图片题先列出从图中读到的关键文字、数字和条件，练习题面要求自包含（拒绝“如图/图中/原题/原图”等依赖讲解页或图片的写法，不合规会有限重试）。练习检查的是标签和格式，不证明答案或实际难度正确。讲解页和练习设有超长输出上限，异常大的结果会先重试，仍不合规则提示重新生成；练习反复失败时可保留讲解、跳过练习结束本次学习。旧会话保留原版本。
 2. **预览分流**：显式设置 `VITE_ENABLE_PHYSICS=true` 的预览构建，对初高中纯文字内容先调用模型判别。非物理内容继续普通 ELI5；可处理候选进入物理流程；超范围走未核验的文字退路；条件不足进入待复核，保留重试入口，并可让使用者主动改用仅文字的普通讲解——该退路不生成物理图，页面持续标注未经物理核验。分流状态可以附带简短说明，但同时给出 `model` 的矛盾结构会转入复核。小学及图片输入目前不自动走物理工具。默认生产构建不启用此入口，也不包含物理 Worker、物理字体/包和压缩编译器；不要误称线上已经启用。
 3. **工具融合**：模型只提取受限结构，程序验证后构建自己的 Typst 源码；使用真实 typed-physics 后台线程进行支持范围内的计算和绘图，再核对结果，固定图和关键结果，并将结构化事实交给 ELI5 生成补充讲解。**不能执行模型自由生成的 Typst 代码**。固定页面顶部显示转义并限长的原题，恢复讲解时按同一题目重建页面；悬挂场景显式绘制绳索（库的 `hanging:` 只定位和提供支持力语义，不会自动画绳）。补充讲解失败或模型判定无法讲解时，可以重试，也可以保留已验证的图、结果和固定练习并跳过补充讲解。模型对题意的判断、补充讲解及图形语义仍不能被格式校验证明正确。
 4. **当前适配**：光滑固定斜面、竖直悬挂静止、有限规模理想直流纯电阻串并联网络；另有一个限定条件的人板静力原型，**人板使用自建静力计算，并非 typed-physics**。当前支持范围有限，不能以此推断涵盖初高中物理。电路的串并联结构和数值有额外独立检查，但原文引用不能证明模型正确理解拓扑。
@@ -46,11 +46,13 @@
 
 2026-11-13 物理预览验收（本地 `VITE_ENABLE_PHYSICS=true`，使用者配置的真实模型）：斜面、悬挂（绳索修复后）、电路、人板静力均能生成并展示；人板三幅受力图在桌面和 390 宽度手机视口均无关键遮挡；缺角度进入待复核或错误提示，热传导走未核验文字退路，图片物理题按普通 ELI5 处理；初中斜面走文字退路、电路和悬挂可自动分流。该记录只覆盖实际操作的样例，不是独立题库正确率，也未覆盖 360 宽度、平板、其他浏览器、深色物理页和读屏朗读。物理预览仍未在线上启用，验收通过不自动等于上线授权。详细记录见 `docs/acceptance-checklist.md` 第 2.7 节。
 
-2026-11-13 已用使用者配置的真实 DeepSeek `deepseek-flash` 执行小规模评测：生产域完成 E01–E03、E08–E10、E13 等通用用例各 2 次；本地物理预览完成 E04 高中斜面、E06 悬挂各 2 次，E05 滑轮和 E07 热传导文字退路各 2 次；E04J 初中斜面文字退路 1 次；E12 条件不足在 2.5 下失败、提示词 2.6 本地复测 2 次均进入补充条件。E11 图片题因没有独立清晰照片未执行。详细结果和限制见 `docs/real-model-eval-results-2026-11-13.md`，用例见 `docs/real-model-eval-cases.md`（14 个）。这不是独立题库正确率认证，不能据此宣称 90%；提示词 2.6 尚未部署，不能把本地 E12 复测当成线上已修复。
+2026-11-13 已用使用者配置的真实 DeepSeek `deepseek-flash` 执行小规模评测：生产域完成 E01–E03、E08–E10、E13 等通用用例各 2 次；本地物理预览完成 E04 高中斜面、E06 悬挂各 2 次，E05 滑轮和 E07 热传导文字退路各 2 次；E04J 初中斜面文字退路 1 次；E12 条件不足在 2.5 下失败、提示词 2.6 本地复测 2 次均进入补充条件；部署 `96c8b2cc` 后线上复测 2 次也均为补充条件、0 道练习。E11 图片题因没有独立清晰照片未执行。详细结果和限制见 `docs/real-model-eval-results-2026-11-13.md`，用例见 `docs/real-model-eval-cases.md`（14 个）。这不是独立题库正确率认证，不能据此宣称 90%。
 
 2026-11-13 上一轮部署验证（`109562b6`）：`zixue.oj-codes.com` 与 `zixue-xiaozhan.pages.dev` 均引用主 bundle `index-DA3wTa54.js` 与 `index-D_cmSXp6.css`；主 JS 约 220KB（gzip 约 77KB），不含 KaTeX；`PracticeCards`（约 371KB，含 KaTeX 0.19.1）、`Eli5View`、`ChatView`、`SettingsView` 为按需分块且可正常请求；生产依赖审计 0 漏洞。bundle 含“本机存储不可用或已满”“请求超时”“还差一点信息”“图形形式要服从学科”“题面必须自包含”“关键文字”“打印 / 保存为 PDF”“跟随系统”“深色模式”“模式说明”“未作答，无法评定”等新标记，CSS 含 `data-theme=dark` 和 `theme-switch`；聊天记录、技能条和报告进度条含读屏语义。Worker 健康检查在自定义域和 workers.dev 均返回 200；无 `Origin` 的 `/proxy` 请求返回 403 `origin_required`；带生产 `Origin` 的请求成功转发到 DeepSeek 并返回 401（未带 key，属预期）；HTTP 目标返回 400 `insecure_target`；响应含 `Access-Control-Allow-Origin` 与 `Vary: Origin`。物理编译器和物理 Worker 路径未部署，物理字体/包已从默认发布包移除；请求这些路径会被 Pages 回退成 index.html（200/text/html），默认构建不会请求它们。2026-11-13 验证响应头：HTML 返回 `x-frame-options: DENY`、`x-content-type-options: nosniff`、`Strict-Transport-Security: max-age=31536000`、`referrer-policy: strict-origin-when-cross-origin` 和 `cache-control: public, max-age=0, must-revalidate`；静态资源带 nosniff 和 `cache-control: public, max-age=31536000, immutable`。
 
 2026-11-13 本轮部署验证（`fb3506d5`）：`zixue.oj-codes.com` 与 `zixue-xiaozhan.pages.dev` 均引用主 bundle `index-Bymf4hZx.js`（约 222KB，gzip 约 77.5KB）和 CSS `index-u5UlLPFP.css`；按需分块 `ChatView-Bdeemw2F.js` 等返回 200，主 bundle 与聊天分块分别包含“跳到输入框”和 `aria-busy`/“老师正在回复”等本轮标记。HTML 响应头与上一轮一致；静态资源返回 `cache-control: public, max-age=31536000, immutable` 和 nosniff。主 bundle 未出现 `physics-packages`/`physics-fonts`/`physics.worker` 引用，发布目录没有物理/typst 文件；`/physics-packages/...` 仍由 Pages 回退为 HTML（200/text/html），默认构建不会请求。旧哈希资源仍可访问属 Pages 保留行为，HTML 已指向新资源。用内置浏览器打开生产域冒烟检查，页面、跳过链接和欢迎弹窗正常加载；Worker 本轮未改动，未重复做代理请求验证。
+
+2026-11-13 提示词 2.6 部署验证（`96c8b2cc`）：两个生产域均引用主 bundle `index-CFxkUWdm.js`（约 223KB，gzip 约 78KB）和 CSS `index-u5UlLPFP.css`；bundle 含 `2.6`、“需要具体数值的题目”“不得用假设的示例数字冒充”等标记，未出现物理 Worker/字体/包引用。部署后用生产域真实 key 重跑 E12 两次：均显示补充条件卡、0 道练习，IndexedDB 中 `promptVersion` 为 `2.6`；此前 2.5 的两条旧记录仍保留为失败样本。默认构建仍不含物理预览。
 
 PowerShell 常用命令（在项目根目录执行；不含上线）：
 
