@@ -42,7 +42,14 @@ export function MasteryReportCard({ report, nickname, gradeLabel, topic }: { rep
               <span className="report-name">{k.name}</span>
               <span className={`report-score ${scoreClass(k.score)}`}>{k.score} 分</span>
             </div>
-            <div className="report-bar">
+            <div
+              className="report-bar"
+              role="progressbar"
+              aria-label={`${k.name} 掌握度`}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.min(100, Math.max(0, Math.round(k.score)))}
+            >
               <div className={`report-fill ${scoreClass(k.score)}`} style={{ width: `${Math.min(100, Math.max(0, k.score))}%` }} />
             </div>
             {k.status && <p className="report-status">{k.status}</p>}

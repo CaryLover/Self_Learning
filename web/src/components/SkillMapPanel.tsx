@@ -4,7 +4,7 @@ const LEVEL_HINT = ["没接触过", "听说过", "能看懂", "需要帮助", "�
 
 function Bar({ level }: { level: number }) {
   return (
-    <div className="sk-bar" aria-label={`${level} / 5`}>
+    <div className="sk-bar" role="img" aria-label={`技能等级 ${level} / 5`}>
       {[1, 2, 3, 4, 5].map((i) => (
         <span key={i} className={`sk-seg${i <= level ? " on" : ""}`} />
       ))}

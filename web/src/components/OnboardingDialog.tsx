@@ -88,13 +88,15 @@ export function OnboardingDialog({
               : "请完整填写下面的信息，用来把握讲解的深度和难度。信息保存在本机，生成讲解时会发送给所选模型服务。"}
         </p>
 
-        <label className="onboard-label">
+        <label className="onboard-label" htmlFor="onboard-nickname">
           怎么称呼你？<span className="req">*</span>
         </label>
         <input
+          id="onboard-nickname"
           type="text"
           placeholder="昵称（可用小名或代号）"
           maxLength={12}
+          autoFocus
           value={nickname}
           className={errors.nickname ? "invalid" : ""}
           onChange={(e) => {
