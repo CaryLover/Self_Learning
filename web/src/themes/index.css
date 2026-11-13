@@ -1209,6 +1209,39 @@ html[data-grade="senior"] .sticker {
   border-radius: var(--radius-sm);
 }
 
+.clarify-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--line-2);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-sm);
+}
+
+.clarify-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.clarify-head i {
+  color: var(--accent);
+  font-size: 1.05em;
+}
+
+.clarify-card p {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.clarify-card .btn-link {
+  padding: 0;
+}
+
 .report-busy {
   padding: 12px;
   text-align: center;

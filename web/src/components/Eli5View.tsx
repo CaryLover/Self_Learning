@@ -37,9 +37,13 @@ export function Eli5View({ eli5, busy, onRetryLesson, onRetryPractice, onSkipPra
         </div>
       )}
       {eli5?.stage === "clarification" && (
-        <div className="error-card">
-          请根据讲解中的提示补充信息，然后重新发送完整题目；如有图片，请一并重新上传。
-          {onEditTopic && <><br /><button className="btn-link" onClick={onEditTopic}>把原题放回输入框修改 →</button></>}
+        <div className="clarify-card">
+          <div className="clarify-head">
+            <i className="ti ti-info-circle" aria-hidden="true"></i>
+            <b>还差一点信息</b>
+          </div>
+          <p>请根据讲解中的提示补充条件，然后重新发送完整题目；如有图片，请一并重新上传。</p>
+          {onEditTopic && <button className="btn-link" onClick={onEditTopic}>把原题放回输入框修改 →</button>}
         </div>
       )}
       {eli5?.stage === "done" && !!eli5.practices?.length && (

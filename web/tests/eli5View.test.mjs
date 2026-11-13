@@ -24,8 +24,12 @@ try {
   assert.doesNotMatch(render({ stage: 'error', retryPractice: true, error: '练习失败' }), /只看讲解，不做练习/);
   assert.match(render({ stage: 'error', html, retryPractice: true, error: '失败' }, true), /disabled=""/);
   assert.doesNotMatch(render({ stage: 'error', error: '讲解失败' }), /重新生成练习/);
-  assert.match(render({ stage: 'clarification', html }), /请根据讲解中的提示补充信息/);
+  assert.match(render({ stage: 'clarification', html }), /请根据讲解中的提示补充条件/);
   assert.doesNotMatch(render({ stage: 'clarification', html }), /巩固练习/);
+  const clarification = render({ stage: 'clarification', html });
+  assert.match(clarification, /clarify-card/);
+  assert.match(clarification, /还差一点信息/);
+  assert.doesNotMatch(clarification, /error-card/);
   assert.match(render({ stage: 'clarification', html, topic: '题目' }, false, false, () => {}), /把原题放回输入框修改/);
   assert.doesNotMatch(render({ stage: 'clarification', html, topic: '题目' }), /把原题放回输入框修改/);
   assert.match(render({ stage: 'error', error: '失败', topic: '题目' }, false, false, () => {}), /修改题目后重新提交/);
