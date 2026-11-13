@@ -5,6 +5,7 @@ const checks = [
   "eli5View.test.mjs",
   "sessionData.test.mjs",
   "apiRequests.test.mjs",
+  "reportExport.test.mjs",
   "markdown.test.mjs",
   "proxySettings.test.mjs",
   "gradePrompt.test.mjs",

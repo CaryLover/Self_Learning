@@ -16,6 +16,10 @@ try {
   assert.ok(emitted.includes('physics-fonts/NewCMMath-Regular.otf'));
   assert.ok(emitted.includes('physics-packages/typed-physics-0.3.0.bin'));
   assert.ok(!emitted.some(name => name.startsWith('__probe_build/') || name.startsWith('__typst_probe/')));
+  const lean = [];
+  await releasePublicAssets(false).generateBundle.call({ emitFile: item => lean.push(item.fileName) });
+  assert.ok(!lean.some(name => name.startsWith('physics-fonts/') || name.startsWith('physics-packages/')));
+  assert.ok(!lean.some(name => name.startsWith('__probe_build/') || name.startsWith('__typst_probe/')));
   console.log('public asset packaging checks passed');
 } finally {
   await unlink(outfile).catch(() => {});

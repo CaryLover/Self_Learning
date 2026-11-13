@@ -14,6 +14,7 @@ export function ChatView({
   skillMap,
   report,
   showMap,
+  reportMeta,
   onEnd,
   onStop,
 }: {
@@ -24,6 +25,7 @@ export function ChatView({
   skillMap?: SkillMap;
   report?: MasteryReport;
   showMap: boolean;
+  reportMeta?: { nickname?: string; gradeLabel?: string };
   onEnd: () => void;
   onStop: () => void;
 }) {
@@ -71,7 +73,7 @@ export function ChatView({
         {streamingMsg && <MessageBubble msg={streamingMsg} streaming />}
         {reportBusy && <div className="report-busy">正在为你生成本次掌握报告…</div>}
       </div>
-      {report && <MasteryReportCard report={report} />}
+      {report && <MasteryReportCard report={report} nickname={reportMeta?.nickname} gradeLabel={reportMeta?.gradeLabel} topic={skillMap?.topic} />}
       <div ref={bottomRef} />
     </div>
   );

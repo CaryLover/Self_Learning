@@ -20,9 +20,13 @@ try {
     const lesson = assets.some(name => name.startsWith("eli5Explain-"));
     const compiler = join(output, "physics-runtime", "typst-compiler.gz.bin");
     const compilerStat = await stat(compiler).catch(() => null);
+    const fontsStat = await stat(join(output, "physics-fonts")).catch(() => null);
+    const packagesStat = await stat(join(output, "physics-packages")).catch(() => null);
     assert.equal(worker, enabled);
     assert.equal(lesson, enabled);
     assert.equal(!!compilerStat, enabled);
+    assert.equal(!!fontsStat, enabled);
+    assert.equal(!!packagesStat, enabled);
     if (compilerStat) {
       assert.ok(compilerStat.size < 25 * 1024 * 1024);
       const prefix = await readFile(compiler);

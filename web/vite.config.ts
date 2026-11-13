@@ -9,7 +9,7 @@ export default defineConfig(({ command, mode }) => {
   return {
   base: "./",
   publicDir: command === "build" ? false : "public",
-  plugins: [react(), releasePublicAssets(), compilerAsset(physicsPreview)],
+  plugins: [react(), releasePublicAssets(physicsPreview), compilerAsset(physicsPreview)],
   define: { __PHYSICS_PREVIEW__: JSON.stringify(physicsPreview) },
   worker: { format: "es" },
   build: { target: "es2020" },

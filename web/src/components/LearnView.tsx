@@ -833,6 +833,7 @@ export function LearnView(props: LearnViewProps) {
               skillMap={current.skillMap}
               report={current.report}
               showMap={!!current.skillMap}
+              reportMeta={{ nickname: settings.profile.nickname || undefined, gradeLabel: GRADE_LABEL[useGrade] }}
               onEnd={() => void endSession()}
               onStop={handleStop}
             />
