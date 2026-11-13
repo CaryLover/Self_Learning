@@ -1,5 +1,18 @@
 # 物理编译验证记录
 
+## 2026-11-13 更新：移除 CeTZ，改自绘 SVG
+
+为避免 CeTZ 0.5.2 的 LGPL-3.0-or-later 与固定哈希加载方式的合规不确定性，当前实现已改为：
+
+- 使用修改版 typed-physics 0.3.0（MIT）：从包入口删除导入 CeTZ 的绘图模块，只保留 mechanics/electricity 的声明、求解和结果模块；包内源码与 LICENSE 随归档保留，NOTICE 记录修改。
+- 斜面、悬挂和纯电阻电路图由 `web/src/lib/physics/diagram.ts` 生成普通 SVG；不再加载 CeTZ、oxifmt、Typst 渲染器 WASM 或 NewCM 字体。
+- 后台线程仍使用 Typst 编译器做计算和 metadata 查询；`tests/typstProbe.mjs`、`tests/circuitProbe.mjs` 已验证无 CeTZ 时可算出斜面 N≈13.81、a≈3.352，悬挂 T=20，电路 R=6、I=2，并检查自绘 SVG。
+- 本地预览已用真实模型生成斜面、悬挂、电路三类自绘图；固定物理页的图形视觉仍需人工滚动复核。
+
+以下 2026-11-12 的记录保留了当时 CeTZ/Typst SVG 的验证过程，部分内容已被本次改动取代。
+
+---
+
 2026-11-12：本地 Node.js 和桌面 Chrome 浏览器验证，使用 typst.ts 0.7.0、typed-physics 0.3.0、CeTZ 0.5.2、oxifmt 1.0.0。Typst 的归档由 `dev/fetch_typst_packages.py` 从官方包站下载；项目本地保存固定版本及哈希。npm 包版本已写入依赖及锁文件。
 
 执行 `cd web` 后运行 `npm run test:typst-probe`。Node 测试暂时使用 Windows 的 Arial 和 Cambria 字体，仅用于本机验证，不随网站发布。浏览器原型使用本地 New Computer Modern 字体，随附来源和许可证；测试还依赖本机 Typst 归档及三项 npm 包。

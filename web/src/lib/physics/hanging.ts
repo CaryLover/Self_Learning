@@ -42,9 +42,7 @@ export function makeHangingSource(input: unknown) {
   return { ...checked, source: `#import "@preview/typed-physics:0.3.0": *
 #let s = situation(ceiling("top", length: 6, height: 4), block("A", mass: ${m.massKg.value}, hanging: "top", drop: 1.5), rope("cord", from: "top", to: "A.top"), gravity: ${m.gravity.value})
 #let result = results(s, "A")
-#metadata((status: result.status, model: result.model, tension: result.tension.value, forces: forces(s, "A").map(f => (role: f.role, direction: f.direction)))) <physics-result>
-#scene(s)
-#fbd(s, "A", axes: false)` };
+#metadata((status: result.status, model: result.model, tension: result.tension.value, forces: forces(s, "A").map(f => (role: f.role, direction: f.direction)))) <physics-result>` };
 }
 
 export function verifyHangingResult(model: HangingModel, input: unknown): boolean {

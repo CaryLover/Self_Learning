@@ -9,9 +9,7 @@ export function makeInclineSource(input: unknown): { source: string; model: Smoo
   const source = `#import "@preview/typed-physics:0.3.0": *
 #let s = situation(ramp("slope", angle: ${m.angleDeg.value}deg, length: 7), block("A", mass: ${m.massKg.value}, on: "slope", at: 55%), gravity: ${m.gravity.value})
 #let result = results(s, "A")
-#metadata((status: result.status, model: result.model, normal: result.normal.value, acceleration: result.acceleration.value, forces: forces(s, "A").map(f => (role: f.role, direction: f.direction)))) <physics-result>
-#scene(s)
-#fbd(s, "A", axes: false)`;
+#metadata((status: result.status, model: result.model, normal: result.normal.value, acceleration: result.acceleration.value, forces: forces(s, "A").map(f => (role: f.role, direction: f.direction)))) <physics-result>`;
   return { source, model: m, assumptions: checked.assumptions };
 }
 

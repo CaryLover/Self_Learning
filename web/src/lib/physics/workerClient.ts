@@ -7,7 +7,6 @@ export { PhysicsWorkerError } from "./workerError";
 export function renderPhysicsInWorker(model: PhysicsModel, signal: AbortSignal): Promise<PhysicsRendering> {
   throwIfAborted(signal);
   const base = new URL(import.meta.env.BASE_URL, window.location.href);
-  const fonts = [new URL("physics-fonts/NewCM10-Regular.otf", base).href, new URL("physics-fonts/NewCMMath-Regular.otf", base).href];
   return new Promise((resolve, reject) => {
     let worker: Worker;
     try {
@@ -28,7 +27,7 @@ export function renderPhysicsInWorker(model: PhysicsModel, signal: AbortSignal):
     worker.onmessageerror = () => { dispose(); reject(new PhysicsWorkerError("无法读取物理工具的结果")); };
     if (signal.aborted) { aborted(); return; }
     try {
-      worker.postMessage({ model, fonts, assetBase: base.href, families: { text: "New Computer Modern", math: "New Computer Modern Math" } });
+      worker.postMessage({ model, assetBase: base.href });
     } catch {
       dispose();
       reject(new PhysicsWorkerError("无法向物理工具发送题目"));

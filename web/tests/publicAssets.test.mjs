@@ -13,7 +13,6 @@ try {
   const { releasePublicAssets } = await import(pathToFileURL(outfile).href);
   const emitted = [];
   await releasePublicAssets().generateBundle.call({ emitFile: item => emitted.push(item.fileName) });
-  assert.ok(emitted.includes('physics-fonts/NewCMMath-Regular.otf'));
   assert.ok(emitted.includes('physics-packages/typed-physics-0.3.0.bin'));
   assert.ok(!emitted.some(name => name.startsWith('__probe_build/') || name.startsWith('__typst_probe/')));
   assert.ok(emitted.includes('_headers'));
@@ -24,7 +23,7 @@ try {
   assert.match(headers, /Cache-Control: public, max-age=31536000, immutable/);
   const lean = [];
   await releasePublicAssets(false).generateBundle.call({ emitFile: item => lean.push(item.fileName) });
-  assert.ok(!lean.some(name => name.startsWith('physics-fonts/') || name.startsWith('physics-packages/')));
+  assert.ok(!lean.some(name => name.startsWith('physics-packages/')));
   assert.ok(!lean.some(name => name.startsWith('__probe_build/') || name.startsWith('__typst_probe/')));
   console.log('public asset packaging checks passed');
 } finally {

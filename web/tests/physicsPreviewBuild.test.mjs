@@ -20,12 +20,11 @@ try {
     const lesson = assets.some(name => name.startsWith("eli5Explain-"));
     const compiler = join(output, "physics-runtime", "typst-compiler.gz.bin");
     const compilerStat = await stat(compiler).catch(() => null);
-    const fontsStat = await stat(join(output, "physics-fonts")).catch(() => null);
     const packagesStat = await stat(join(output, "physics-packages")).catch(() => null);
     assert.equal(worker, enabled);
     assert.equal(lesson, enabled);
     assert.equal(!!compilerStat, enabled);
-    assert.equal(!!fontsStat, enabled);
+    assert.equal(assets.some(name => name.startsWith('typst_ts_renderer')), false);
     assert.equal(!!packagesStat, enabled);
     if (compilerStat) {
       assert.ok(compilerStat.size < 25 * 1024 * 1024);
@@ -34,7 +33,9 @@ try {
       assert.equal(prefix[1], 0x8b);
       assert.equal(createHash('sha256').update(gunzipSync(prefix)).digest('hex'), '1fc968438a672366dfec39c96c842c26ed29caff4eb1bcaab19a6c60867de5fd');
       assert.ok((await stat(join(output, 'physics-packages', 'typed-physics-0.3.0.bin'))).isFile());
-      assert.ok((await stat(join(output, 'physics-fonts', 'NewCMMath-Regular.otf'))).isFile());
+      assert.equal((await stat(join(output, 'physics-fonts')).catch(() => null)), null);
+      assert.equal((await stat(join(output, 'physics-packages', 'cetz-0.5.2.bin')).catch(() => null)), null);
+      assert.equal((await stat(join(output, 'physics-packages', 'oxifmt-1.0.0.bin')).catch(() => null)), null);
       const probe = spawnSync(process.execPath, ['tests/typstProbe.mjs'], { cwd: process.cwd(), env: { ...process.env, PHYSICS_COMPRESSED_PROBE: '1', PHYSICS_COMPRESSED_PATH: compiler }, encoding: 'utf8', timeout: 120000, maxBuffer: 10 * 1024 * 1024 });
       if (probe.status !== 0) throw new Error(`压缩编译器验证失败：${probe.stderr || probe.stdout || probe.error?.message}`);
     }

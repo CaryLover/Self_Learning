@@ -4,7 +4,7 @@ import type { Plugin } from "vite";
 
 /** Exclude temporary browser probes while preserving the remaining public paths. */
 export function releasePublicAssets(includePhysics = true): Plugin {
-  const physicsDirs = new Set(["physics-fonts", "physics-packages"]);
+  const physicsDirs = new Set(["physics-packages"]);
   return {
     name: "release-public-assets",
     apply: "build",

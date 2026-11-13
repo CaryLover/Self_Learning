@@ -1,11 +1,17 @@
-# Physics package sources
+# Physics package source
 
-These unmodified package archives are distributed with their original files and license notices. The .bin extension preserves the gzip bytes when served to a browser.
+`typed-physics-0.3.0.bin` is a modified **typed-physics 0.3.0** package archive.
+The upstream package is MIT-licensed (see the `LICENSE` file inside the archive).
+The app removes the rendering entry points that imported CeTZ and keeps only the
+mechanics/electricity declaration and solver modules; diagrams are drawn by the
+app itself as SVG. The archive is uncompressed by the browser and verified
+against a fixed SHA-256 before loading.
 
-| Asset | Official source | License declared by package | SHA-256 |
-|---|---|---|---|
-| typed-physics-0.3.0.bin | https://packages.typst.org/preview/typed-physics-0.3.0.tar.gz | MIT | 077c7e6adfb1df71e6246d399809f2e84f4cff6548a932801184a8779a016e22 |
-| cetz-0.5.2.bin | https://packages.typst.org/preview/cetz-0.5.2.tar.gz | LGPL-3.0-or-later | 77cf8490114ae04c6e665a11efa691d284a0cadb9719771b5708c1197292f23f |
-| oxifmt-1.0.0.bin | https://packages.typst.org/preview/oxifmt-1.0.0.tar.gz | MIT OR Apache-2.0 | 7d17a1fc8ad01740ec3cb2b03c7360a4225ff9318e5710765fa98ea6fd59594f |
+- Upstream: https://github.com/GeronimoCastano/typed-physics
+- Upstream version: 0.3.0
+- License: MIT
+- SHA-256: `3a29a1e71fe48d9af56b241b84f9770b68f7af6f7404e8497974d0a9f7eabc3c`
 
-The archives contain the corresponding source files and license information. The browser renderer verifies the bytes against these hashes before loading them. Final distribution still requires review of all dependencies, fonts, and applicable license obligations.
+No CeTZ, oxifmt, or font files are bundled with the physics preview. The Typst
+compiler WASM remains under Typst's Apache-2.0 license and is distributed as a
+compressed, hash-verified runtime asset.

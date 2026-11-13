@@ -75,6 +75,6 @@ export function makeCircuitSource(input: unknown): { source: string; model: Circ
     if (node.kind === "resistor") return `e.resistor(${JSON.stringify(node.id)}, resistance: ${node.resistance})`;
     return `e.${node.kind}(${node.children.map(emit).join(", ")})`;
   }
-  const source = `#import "@preview/typed-physics:0.3.0": electricity as e\n#let c = e.dc-circuit(e.voltage-source("V", voltage: ${checked.model.voltage}), ${emit(checked.model.network)})\n#let r = e.results(c)\n#metadata((regime: r.regime, conducts: r.conducts, resistance: r.resistance.value, voltage: r.voltage.value, current: r.current.value)) <physics-result>\n#e.diagram(c, labels: "both")`;
+  const source = `#import "@preview/typed-physics:0.3.0": electricity as e\n#let c = e.dc-circuit(e.voltage-source("V", voltage: ${checked.model.voltage}), ${emit(checked.model.network)})\n#let r = e.results(c)\n#metadata((regime: r.regime, conducts: r.conducts, resistance: r.resistance.value, voltage: r.voltage.value, current: r.current.value)) <physics-result>`;
   return { source, model: checked.model, assumptions: [] };
 }

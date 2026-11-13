@@ -8,9 +8,9 @@ import assert from "node:assert/strict";
 const dir = await mkdtemp(join(tmpdir(), "circuit-model-"));
 const outfile = join(dir, "model.mjs");
 try {
-  const bundled = await build({ stdin: { contents: `export * from './src/lib/physics/circuit.ts'; export * from './src/lib/physics/circuitExtraction.ts';`, resolveDir: process.cwd(), loader: 'ts' }, bundle: true, platform: "node", format: "esm", write: false, outfile });
+  const bundled = await build({ stdin: { contents: `export * from './src/lib/physics/circuit.ts'; export * from './src/lib/physics/circuitExtraction.ts'; export * from './src/lib/physics/diagram.ts';`, resolveDir: process.cwd(), loader: 'ts' }, bundle: true, platform: "node", format: "esm", write: false, outfile });
   await writeFile(outfile, bundled.outputFiles[0].contents);
-  const { validateCircuit, circuitReference, verifyCircuitResult, makeCircuitSource, parseCircuitExtraction } = await import(pathToFileURL(outfile).href);
+  const { validateCircuit, circuitReference, verifyCircuitResult, makeCircuitSource, parseCircuitExtraction, circuitDiagram } = await import(pathToFileURL(outfile).href);
   const resistor = (id, resistance) => ({ kind: 'resistor', id, resistance });
   const network = { kind: 'series', children: [resistor('R1', 3), { kind: 'parallel', children: [resistor('R2', 6), resistor('R3', 6)] }] };
   const model = { kind: 'resistive-circuit', voltage: 12, network, requested: ['equivalent', 'current'] };
@@ -32,7 +32,12 @@ try {
   const source = makeCircuitSource(model).source;
   assert.match(source, /e\.series\(e\.resistor\("R1"/);
   assert.match(source, /e\.parallel\(/);
-  assert.match(source, /e\.diagram\(c/);
+  assert.doesNotMatch(source, /e\.diagram/);
+  const diagram = circuitDiagram(model, result);
+  assert.match(diagram, /<svg/);
+  assert.match(diagram, /R1/);
+  assert.match(diagram, /R2/);
+  assert.match(diagram, /V/);
   const question = '理想直流电源为12V，纯电阻网络中R1为3Ω，R2为6Ω，R3为6Ω。R2与R3并联后与R1串联，求总电阻和总电流。';
   const topology = 'R2与R3并联后与R1串联';
   const evidence = { voltage: '12V', topology, resistors: { R1: 'R1为3Ω', R2: 'R2为6Ω', R3: 'R3为6Ω' } };
