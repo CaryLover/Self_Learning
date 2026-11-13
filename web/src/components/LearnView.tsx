@@ -767,7 +767,8 @@ export function LearnView(props: LearnViewProps) {
             ))}
           </div>
           <span className="mode-chip">
-            {useMode === "eli5" ? "大图少字讲明白" : "老师引导你想出来，不给答案"}
+            <i className="ti ti-info-circle" aria-hidden="true"></i>
+            模式说明：{useMode === "eli5" ? "大图少字讲明白" : "老师引导你想出来，不给答案"}
           </span>
           {!model && (
             <div className="modelbar-empty">

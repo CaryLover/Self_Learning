@@ -860,8 +860,14 @@ html[data-grade="senior"] .session-item.active {
 .mode-chip {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   font-size: 0.82em;
   color: var(--ink-2);
+}
+
+.mode-chip i {
+  font-size: 1em;
+  opacity: 0.85;
 }
 
 html[data-grade="primary"] .mode-chip {
