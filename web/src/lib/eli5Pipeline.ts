@@ -33,6 +33,8 @@ function parsePractices(text: string, textOnly = false): PracticeItem[] | null {
   if (ranks[0] !== 0 || ranks[ranks.length - 1] !== 2 || !ranks.includes(1) || ranks.some((rank, index) => index > 0 && rank < ranks[index - 1])) return null;
   const list = items as PracticeItem[];
   if (list.some(item => [item.question, item.answer, item.analysis].some(value => value.length > 4000)) || JSON.stringify(list).length > 60_000) return null;
+  // 练习卡片不附带讲解页或原图；引用“如图/图中”等会让孩子无法独立读题。
+  if (list.some(item => /(?:如|见|根据|观察)(?:上|下)?图|图(?:中|里|内|上|所示)|上图|下图|图片中|照片中|原题|原图|(?:这|那)(?:张|幅)图/.test(item.question))) return null;
   if (textOnly && list.some(item => [item.question, item.answer, item.analysis].some(value => /!\s*\[|https?:\/\/|<\s*(?:svg|img|canvas|picture|video|audio)\b/i.test(value)))) return null;
   return list;
 }
@@ -107,7 +109,7 @@ export async function runEli5Practice(options: {
     let praw = await call(pmsgs, signal);
     let practices = parsePractices(praw, textOnly);
     if (!practices) {
-      pmsgs = [...pmsgs, { role: "assistant", content: praw }, { role: "user", content: `请只输出 3–5 道练习的 JSON 数组，每项包含非空 question、answer、analysis 和 difficulty。第一题为持平，至少一道进阶，最后一题培优，难度依次不降低；每项文字保持简短（各不超过 4000 字符）。${textOnly ? "只用文字，不得包含图片、图表或图形。" : ""}` }];
+      pmsgs = [...pmsgs, { role: "assistant", content: praw }, { role: "user", content: `请只输出 3–5 道练习的 JSON 数组，每项包含非空 question、answer、analysis 和 difficulty。第一题为持平，至少一道进阶，最后一题培优，难度依次不降低；每项文字保持简短（各不超过 4000 字符）；题面必须自包含，不得写“如图/图中/图里/图上/这张图/图片中/原题中/原图”等依赖图片、讲解页或原题的说法。${textOnly ? "只用文字，不得包含图片、图表或图形。" : ""}` }];
       praw = await call(pmsgs, signal);
       practices = parsePractices(praw, textOnly);
     }

@@ -1,5 +1,5 @@
 /** 项目共用的 ELI5 讲解原则；学段与输出协议由调用方另行添加。 */
-export const ELI5_PROMPT_VERSION = "2.3";
+export const ELI5_PROMPT_VERSION = "2.4";
 
 export const ELI5_CORE = `你是一位擅长画图讲解的老师。假定学习者第一次接触这个主题，用大图、少字的 HTML 帮助他们理解。
 先建立直观认识，再引入必要的术语；术语第一次出现时用适合学段的语言解释。
