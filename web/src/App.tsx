@@ -146,6 +146,18 @@ export default function App() {
 
   return (
     <div className="app">
+      {page === "learn" && (
+        <a
+          className="skip-link"
+          href="#composer-input"
+          onClick={(e) => {
+            e.preventDefault();
+            document.getElementById("composer-input")?.focus();
+          }}
+        >
+          跳到输入框
+        </a>
+      )}
       <header className="topbar">
         <button className="logo" onClick={() => goPage("learn")}>
           <span className="logo-icon"><i className="ti ti-seedling" aria-hidden="true"></i></span>

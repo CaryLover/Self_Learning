@@ -17,3 +17,5 @@ web/public/__probe_build/
 dev/probe-build/
 dev/probe-build-clean/
 dev/probe-build-compressed/
+
+gui-test-screenshots/

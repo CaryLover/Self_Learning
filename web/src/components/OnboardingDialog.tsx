@@ -1,6 +1,6 @@
 /** 首次进入引导：填写孩子昵称 / 头像 / 学段 / 当前年级（全部必填）；之后可从顶栏「修改」再次打开 */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Grade, Settings } from "../lib/types";
 import { GRADE_LEVELS, GRADE_NAME, isValidLevel } from "../lib/grade";
 
@@ -40,6 +40,41 @@ export function OnboardingDialog({
   const [attempted, setAttempted] = useState(false); // 是否点过「开始学习」/「保存」
   const editing = mode === "edit";
   const returning = !editing && settings.profile.onboarded === true && !!settings.profile.gradeLevel;
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+
+  // 弹窗打开时把键盘焦点限制在弹窗内；关闭后还给原来的控件。
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // 先记住原来的焦点，再把焦点放到昵称框；这样关闭弹窗时能回到触发它的控件。
+    dialog.querySelector<HTMLInputElement>("#onboard-nickname")?.focus();
+    const focusables = (): HTMLElement[] =>
+      Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null);
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    dialog.addEventListener("keydown", onKeyDown);
+    return () => {
+      dialog.removeEventListener("keydown", onKeyDown);
+      if (previous && document.contains(previous)) previous.focus();
+    };
+  }, []);
 
   /** 当前表单是否仍缺必填项（用于横幅，实时计算，补全即消失） */
   const incomplete = !nickname.trim() || !GRADES.some((g) => g.id === grade) || !isValidLevel(grade, gradeLevel);
@@ -76,10 +111,10 @@ export function OnboardingDialog({
   const showBanner = attempted && incomplete;
 
   return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-label="孩子信息">
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="onboard-title" ref={dialogRef}>
       <div className="onboard">
         <div className="onboard-emoji"><i className="ti ti-mood-smile" aria-hidden="true"></i></div>
-        <h2>{editing ? "修改孩子的信息" : returning ? "欢迎回来！" : "欢迎来到自学小站！"}</h2>
+        <h2 id="onboard-title">{editing ? "修改孩子的信息" : returning ? "欢迎回来！" : "欢迎来到自学小站！"}</h2>
         <p className="onboard-sub">
           {editing
             ? "修改后点「保存」生效"
@@ -96,7 +131,9 @@ export function OnboardingDialog({
           type="text"
           placeholder="昵称（可用小名或代号）"
           maxLength={12}
-          autoFocus
+          required
+          aria-invalid={errors.nickname ? true : undefined}
+          aria-describedby={errors.nickname ? "onboard-nickname-error" : undefined}
           value={nickname}
           className={errors.nickname ? "invalid" : ""}
           onChange={(e) => {
@@ -108,25 +145,41 @@ export function OnboardingDialog({
             });
           }}
         />
-        {errors.nickname && <p className="field-error">⚠ {errors.nickname}</p>}
+        {errors.nickname && (
+          <p className="field-error" id="onboard-nickname-error" role="alert">
+            ⚠ {errors.nickname}
+          </p>
+        )}
 
-        <label className="onboard-label">选一个代表你的小伙伴</label>
-        <div className="avatar-row">
+        <label className="onboard-label" id="onboard-avatar-label">选一个代表你的小伙伴</label>
+        <div className="avatar-row" role="group" aria-labelledby="onboard-avatar-label">
           {AVATARS.map((a) => (
-            <button key={a} className={`avatar${avatar === a ? " on" : ""}`} onClick={() => setAvatar(a)}>
+            <button
+              key={a}
+              className={`avatar${avatar === a ? " on" : ""}`}
+              aria-label={`选择头像：${a}`}
+              aria-pressed={avatar === a}
+              onClick={() => setAvatar(a)}
+            >
               {a}
             </button>
           ))}
         </div>
 
-        <label className="onboard-label">
+        <label className="onboard-label" id="onboard-grade-label">
           你在读哪个学段？<span className="req">*</span>
         </label>
-        <div className="grade-pick">
+        <div
+          className="grade-pick"
+          role="group"
+          aria-labelledby="onboard-grade-label"
+          aria-describedby={errors.grade ? "onboard-grade-error" : undefined}
+        >
           {GRADES.map((g) => (
             <button
               key={g.id}
               className={`grade-card${grade === g.id ? " on" : ""}`}
+              aria-pressed={grade === g.id}
               onClick={() => chooseGrade(g.id)}
             >
               <span className="grade-emoji"><i className={"ti " + g.icon} aria-hidden="true"></i></span>
@@ -135,17 +188,27 @@ export function OnboardingDialog({
             </button>
           ))}
         </div>
-        {errors.grade && <p className="field-error">⚠ {errors.grade}</p>}
+        {errors.grade && (
+          <p className="field-error" id="onboard-grade-error" role="alert">
+            ⚠ {errors.grade}
+          </p>
+        )}
 
-        <label className="onboard-label">
+        <label className="onboard-label" id="onboard-level-label">
           当前年级？<span className="req">*</span>
           <span className="label-hint">决定讲题方法的上限，选错容易超纲</span>
         </label>
-        <div className="level-pick">
+        <div
+          className="level-pick"
+          role="group"
+          aria-labelledby="onboard-level-label"
+          aria-describedby={errors.gradeLevel ? "onboard-level-error" : undefined}
+        >
           {GRADE_LEVELS[grade].map((lv) => (
             <button
               key={lv}
               className={`level-chip${gradeLevel === lv ? " on" : ""}`}
+              aria-pressed={gradeLevel === lv}
               onClick={() => {
                 setGradeLevel(lv);
                 clearError("gradeLevel");
@@ -155,7 +218,11 @@ export function OnboardingDialog({
             </button>
           ))}
         </div>
-        {errors.gradeLevel && <p className="field-error">⚠ {errors.gradeLevel}</p>}
+        {errors.gradeLevel && (
+          <p className="field-error" id="onboard-level-error" role="alert">
+            ⚠ {errors.gradeLevel}
+          </p>
+        )}
 
         {showBanner && (
           <div className="form-error" role="alert">

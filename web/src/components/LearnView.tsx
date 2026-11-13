@@ -716,7 +716,7 @@ export function LearnView(props: LearnViewProps) {
   return (
     <div className="learn" style={active ? undefined : { display: "none" }}>
       {/* ---- 侧栏 ---- */}
-      <aside className="sidebar">
+      <aside className="sidebar" aria-label="学段与最近学习">
         <div className="seg-label">学段（在系统设置中修改）</div>
         <div className="grade-display" title="学段在首次填写时选定，如需修改请到「系统设置 → 孩子基础信息」">
           <span className="grade-display-value">{GRADE_LABEL[useGrade]}</span>
@@ -727,11 +727,16 @@ export function LearnView(props: LearnViewProps) {
         </button>
 
         <div className="sidebar-label">最近学习</div>
-        <div className="session-list">
+        <nav className="session-list" aria-label="最近学习">
           {sessions.length === 0 && <div className="session-empty">还没有学习记录</div>}
           {sessions.map((s) => (
             <div key={s.id} className={`session-item${current?.id === s.id ? " active" : ""}`}>
-              <button className="session-open" onClick={() => onOpenSession(s.id)} disabled={busy}>
+              <button
+                className="session-open"
+                onClick={() => onOpenSession(s.id)}
+                disabled={busy}
+                aria-current={current?.id === s.id ? "true" : undefined}
+              >
                 <span className="session-mode">{s.mode === "eli5" ? <i className="ti ti-palette" aria-hidden="true"></i> : <i className="ti ti-school" aria-hidden="true"></i>}</span>
                 <span className="session-title">{s.title || "新的学习"}</span>
                 <span className="session-date">{fmtDate(s.updatedAt)}</span>
@@ -739,6 +744,7 @@ export function LearnView(props: LearnViewProps) {
               <button
                 className="session-del"
                 title="删除"
+                aria-label={`删除会话：${s.title || "新的学习"}`}
                 disabled={busy}
                 onClick={() => {
                   if (confirm(`删除「${s.title || "新的学习"}」？不可恢复。`)) onDeleteSession(s.id);
@@ -748,7 +754,7 @@ export function LearnView(props: LearnViewProps) {
               </button>
             </div>
           ))}
-        </div>
+        </nav>
       </aside>
 
       {/* ---- 主区 ---- */}
@@ -759,11 +765,13 @@ export function LearnView(props: LearnViewProps) {
             {MODES.map((m) => (
               <button
                 key={m}
+                id={`mode-tab-${m}`}
                 className={`seg${useMode === m ? " active" : ""}`}
                 onClick={() => switchMode(m)}
                 disabled={busy}
                 role="tab"
                 aria-selected={useMode === m}
+                aria-controls={model && current ? "mode-panel" : undefined}
               >
                 <span className="seg-icon">{m === "eli5" ? <i className="ti ti-palette" aria-hidden="true"></i> : <i className="ti ti-school" aria-hidden="true"></i>}</span>
                 <span>{MODE_LABEL[m]}</span>
@@ -831,7 +839,7 @@ export function LearnView(props: LearnViewProps) {
           </div>
         ) : isSocratic ? (
           <Suspense fallback={<div className="report-busy">正在加载辅导界面…</div>}>
-            <div className="chat-layout">
+            <div className="chat-layout" role="tabpanel" id="mode-panel" aria-labelledby="mode-tab-socratic">
               <ChatView
                 messages={current.messages}
                 streamText={streamText}
@@ -856,7 +864,7 @@ export function LearnView(props: LearnViewProps) {
           </Suspense>
         ) : (
           <Suspense fallback={<div className="report-busy">正在加载讲解界面…</div>}>
-            <div className="chat-layout single">
+            <div className="chat-layout single" role="tabpanel" id="mode-panel" aria-labelledby="mode-tab-eli5">
               <Eli5View eli5={current.eli5} busy={busy} onRetryLesson={() => void retryEli5Lesson()} onRetryPractice={() => void retryEli5Practice()} onSkipPractice={skipEli5Practice} onRetryPhysicsExplanation={() => void retryPhysicsExplanation()} onSkipPhysicsExplanation={() => void skipPhysicsExplanation()} onContinueUnverified={() => void continueEli5Unverified()} onEditTopic={canEditTopic ? editTopic : undefined} physicsRetryEnabled={import.meta.env.DEV || __PHYSICS_PREVIEW__} />
               {!current.eli5 || current.eli5.stage === "idle" ? (
                 <div className="welcome">
@@ -903,6 +911,7 @@ export function LearnView(props: LearnViewProps) {
             <div className="composer-box">
               <textarea
                 ref={composerRef}
+                id="composer-input"
                 aria-label="输入题目或知识点"
                 value={input}
                 placeholder={
