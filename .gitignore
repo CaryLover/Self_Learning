@@ -19,3 +19,5 @@ dev/probe-build-clean/
 dev/probe-build-compressed/
 
 gui-test-screenshots/
+
+eval-results/
