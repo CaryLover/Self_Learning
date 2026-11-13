@@ -31,6 +31,7 @@ export interface LearnViewProps {
   current: Session | null;
   onPrefsChange: (p: UiPrefs) => void;
   onNewSession: (opts?: { mode?: Mode; grade?: Grade }) => void;
+  onClearCurrent: () => void;
   onOpenSession: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onSaveSession: (s: Session) => void;
@@ -38,7 +39,7 @@ export interface LearnViewProps {
 }
 
 export function LearnView(props: LearnViewProps) {
-  const { active, settings, prefs, sessions, current, onPrefsChange, onNewSession, onOpenSession, onDeleteSession, onSaveSession, goSettings } = props;
+  const { active, settings, prefs, sessions, current, onPrefsChange, onNewSession, onClearCurrent, onOpenSession, onDeleteSession, onSaveSession, goSettings } = props;
 
   const [input, setInput] = useState("");
   const [images, setImages] = useState<string[]>([]); // 待发送的图片（data URL）
@@ -152,8 +153,8 @@ export function LearnView(props: LearnViewProps) {
 
   function switchMode(mode: Mode): void {
     onPrefsChange({ ...prefs, mode });
-    // 模式切换 = 开新会话（两种模式的上下文结构不同）；显式传 mode，避免读到旧的 prefs
-    if (!current || current.mode !== mode) onNewSession({ mode });
+    // 只切换界面模式；不立即创建会话，首次发送时才写入“最近学习”
+    if (current && current.mode !== mode) onClearCurrent();
   }
 
   // ---------------------------------------------------------------- 苏格拉底

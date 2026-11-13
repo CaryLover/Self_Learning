@@ -32,7 +32,7 @@ window.fetch = async (_input, init) => {
 window.Worker = class { constructor() { throw new Error('test worker failure'); } } as unknown as typeof Worker;
 function Fixture({ initial = null }: { initial?: Session | null }) {
   const [current, setCurrent] = useState<Session | null>(initial);
-  return <LearnView active settings={settings} prefs={{ grade: "senior", mode: "eli5", theme: "light" }} sessions={current ? [current] : []} current={current} onPrefsChange={() => {}} onNewSession={() => {}} onOpenSession={() => {}} onDeleteSession={() => {}} onSaveSession={next => { if (next.eli5?.retryPhysicsExplanation) pendingSnapshot = structuredClone(next); setCurrent(next); }} goSettings={() => {}} />;
+  return <LearnView active settings={settings} prefs={{ grade: "senior", mode: "eli5", theme: "light" }} sessions={current ? [current] : []} current={current} onPrefsChange={() => {}} onNewSession={() => {}} onClearCurrent={() => {}} onOpenSession={() => {}} onDeleteSession={() => {}} onSaveSession={next => { if (next.eli5?.retryPhysicsExplanation) pendingSnapshot = structuredClone(next); setCurrent(next); }} goSettings={() => {}} />;
 }
 const root = createRoot(document.querySelector("#root")!);
 root.render(<Fixture />);

@@ -21,7 +21,7 @@ const originalCreateImageBitmap = window.createImageBitmap;
 let resumeImage: (() => void) | undefined;
 window.fetch = async () => { requests++; throw new Error("此检查不应调用模型"); };
 const root = createRoot(document.querySelector("#root")!);
-root.render(<LearnView active settings={settings} prefs={{ grade: "primary", mode: "eli5", theme: "light" }} sessions={[]} current={null} onPrefsChange={() => {}} onNewSession={() => {}} onOpenSession={() => {}} onDeleteSession={() => {}} onSaveSession={() => { saves++; }} goSettings={() => {}} />);
+root.render(<LearnView active settings={settings} prefs={{ grade: "primary", mode: "eli5", theme: "light" }} sessions={[]} current={null} onPrefsChange={() => {}} onNewSession={() => {}} onClearCurrent={() => {}} onOpenSession={() => {}} onDeleteSession={() => {}} onSaveSession={() => { saves++; }} goSettings={() => {}} />);
 
 const waitFor = async (selector: string): Promise<Element> => {
   for (let i = 0; i < 100; i++) {
@@ -90,7 +90,7 @@ try {
     messages: [{ id: "user", role: "user", content: "请讲解图片", ts: 0 }], turns: [],
     eli5: { stage: "error", topic: "请讲解图片", sourceImageCount: 1, retryLesson: true },
   };
-  const renderSaved = (session: Session) => root.render(<LearnView active settings={settings} prefs={{ grade: "primary", mode: "eli5", theme: "light" }} sessions={[session]} current={session} onPrefsChange={() => {}} onNewSession={() => {}} onOpenSession={() => {}} onDeleteSession={() => {}} onSaveSession={next => { saves++; saved.session = next; }} goSettings={() => {}} />);
+  const renderSaved = (session: Session) => root.render(<LearnView active settings={settings} prefs={{ grade: "primary", mode: "eli5", theme: "light" }} sessions={[session]} current={session} onPrefsChange={() => {}} onNewSession={() => {}} onClearCurrent={() => {}} onOpenSession={() => {}} onDeleteSession={() => {}} onSaveSession={next => { saves++; saved.session = next; }} goSettings={() => {}} />);
   renderSaved(missing);
   (await waitFor(".eli5 .btn") as HTMLButtonElement).click();
   for (let i = 0; i < 100 && !getSaved(); i++) await new Promise(resolve => setTimeout(resolve, 50));

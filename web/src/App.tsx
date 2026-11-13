@@ -96,10 +96,11 @@ export default function App() {
       messages: [],
       turns: [],
     };
+    // 仅放进当前编辑区；首次发送时 onSaveSession 才写入列表和 IndexedDB。
     setCurrent(s);
-    setSessions((list) => [s, ...list]);
-    void putSession(s).catch(() => setStorageWarn(true));
   }, [prefs.mode, prefs.grade]);
+
+  const onClearCurrent = useCallback(() => setCurrent(null), []);
 
   const onOpenSession = useCallback((id: string) => {
     void getSession(id).then((s) => {
@@ -161,6 +162,15 @@ export default function App() {
             </button>
           )}
           <button
+            className="theme-switch"
+            type="button"
+            role="switch"
+            aria-checked={dark}
+            aria-label="深色模式"
+            title={dark ? "切换到浅色" : "切换到深色"}
+            onClick={() => onChangePrefs({ ...prefs, theme: dark ? "light" : "dark" })}
+          />
+          <button
             className="topbar-icon"
             aria-label="系统设置"
             title="系统设置"
@@ -191,6 +201,7 @@ export default function App() {
         current={current}
         onPrefsChange={onChangePrefs}
         onNewSession={onNewSession}
+        onClearCurrent={onClearCurrent}
         onOpenSession={onOpenSession}
         onDeleteSession={onDeleteSession}
         onSaveSession={onSaveSession}

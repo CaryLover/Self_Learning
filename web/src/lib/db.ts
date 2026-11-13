@@ -44,6 +44,7 @@ export async function listSessions(): Promise<Session[]> {
   return all
     .map(normalizeSession)
     .filter((session): session is Session => session !== null)
+    .filter((session) => session.messages.length > 0 || session.turns.length > 0)
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
