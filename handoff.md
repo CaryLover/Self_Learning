@@ -15,7 +15,7 @@
 ### 2. 版本管理：先保护工作区
 
 - 2026-11-13 代码提交：`8aee16e 完善图片题条件核对与无障碍提示`；此前 `2f1cda9 完善跨学科图形选择与练习自包含`、`eafe784 加固会话恢复、存储与代理安全`、`747a6a8`。均位于分支 `eli5-physics-fusion`；`master` 仍停在 `969604b`，未自动合并。
-- 同日已按用户指示部署：前端 Pages 部署 `a5a3b1ed`，生产域 `zixue.oj-codes.com` / `zixue-xiaozhan.pages.dev`，主 bundle `index-DesKJqge.js`、CSS `index-D_cmSXp6.css`，按需加载 `PracticeCards`、`Eli5View`、`ChatView`、`SettingsView` 分块，线上 ELI5 提示词版本 `2.5`；Worker `zixue-relay` 版本 `2fcd4a44-c611-42ff-bee7-e7ecfea5f51a`。默认构建不包含物理 Worker、物理字体/包和压缩编译器；包含报告打印、顶栏深浅色开关，以及“首次发送才创建最近学习记录”的会话行为。
+- 同日已按用户指示部署：前端 Pages 部署 `7ff342a2`，生产域 `zixue.oj-codes.com` / `zixue-xiaozhan.pages.dev`，主 bundle `index-BMWKzl35.js`、CSS `index-D_cmSXp6.css`，按需加载 `PracticeCards`、`Eli5View`、`ChatView`、`SettingsView` 分块，线上 ELI5 提示词版本 `2.5`；KaTeX 已升级到 0.19.1，生产依赖审计 0 漏洞；Worker `zixue-relay` 版本 `2fcd4a44-c611-42ff-bee7-e7ecfea5f51a`。默认构建不包含物理 Worker、物理字体/包和压缩编译器；包含报告打印、顶栏深浅色开关，以及“首次发送才创建最近学习记录”的会话行为。
 - 记录部署的文档修改通常比代码提交晚一个提交；以 `git log -2 --oneline` 为准。
 - 先运行 `git status --short`、`git log -2 --oneline` 和 `git diff` 熟悉现状；还要检查 `git status` 中的 `??` 新文件，普通 `git diff` 不包含它们。若把项目交给其他环境，请确保完整携带所有已修改及未跟踪的项目源文件；忽略目录和敏感配置按需单独处理，勿把 API key 等秘密写入提交。
 - 当前环境可以写入 `.git`；继续提交时沿用项目的中文提交习惯，保留已有历史。提交前已扫描常见的硬编码密钥模式，未发现真实密钥；仍不要提交 `.env`、真实 API key 等。若要把成果合回 `master`，需由用户确认后再操作。
@@ -42,7 +42,7 @@
 
 在交接前的当前工作区，`web` 目录执行 `npm test` 通过，包含 TypeScript、通用讲解、会话结构收敛、融合分流（含待复核退路与跳过补充讲解）、物理条件证据核对、模型边界、真实电路库编译及默认/预览构建检查；另执行 `npm run test:typst-probe` 通过，使用真实 Typst/typed-physics 检查支持案例。`git diff --check` 通过，仅有 Windows 换行提示。曾用本地模拟服务和独立浏览器验证若干分流、失败重试、图片处理及 iframe 子资源隔离；这些不是完整的真实模型输出或最终视觉验收。用户过去反馈过部分图和练习，不能据此推断整体正确率。
 
-2026-11-13 线上部署验证：`zixue.oj-codes.com` 与 `zixue-xiaozhan.pages.dev` 均引用主 bundle `index-DesKJqge.js` 与 `index-D_cmSXp6.css`；主 JS 约 220KB（gzip 约 77KB），不含 KaTeX；`PracticeCards`（约 370KB，含 KaTeX）、`Eli5View`、`ChatView`、`SettingsView` 为按需分块且可正常请求。bundle 含“本机存储不可用或已满”“请求超时”“还差一点信息”“图形形式要服从学科”“题面必须自包含”“关键文字”“打印 / 保存为 PDF”“跟随系统”“深色模式”“模式说明”等新标记，CSS 含 `data-theme=dark` 和 `theme-switch`；Worker 健康检查在自定义域和 workers.dev 均返回 200；无 `Origin` 的 `/proxy` 请求返回 403 `origin_required`；带生产 `Origin` 的请求成功转发到 DeepSeek 并返回 401（未带 key，属预期）；HTTP 目标返回 400 `insecure_target`；响应含 `Access-Control-Allow-Origin` 与 `Vary: Origin`。物理编译器和物理 Worker 路径未部署，物理字体/包已从默认发布包移除；请求这些路径会被 Pages 回退成 index.html（200/text/html），默认构建不会请求它们。
+2026-11-13 线上部署验证：`zixue.oj-codes.com` 与 `zixue-xiaozhan.pages.dev` 均引用主 bundle `index-BMWKzl35.js` 与 `index-D_cmSXp6.css`；主 JS 约 220KB（gzip 约 77KB），不含 KaTeX；`PracticeCards`（约 371KB，含 KaTeX 0.19.1）、`Eli5View`、`ChatView`、`SettingsView` 为按需分块且可正常请求；生产依赖审计 0 漏洞。bundle 含“本机存储不可用或已满”“请求超时”“还差一点信息”“图形形式要服从学科”“题面必须自包含”“关键文字”“打印 / 保存为 PDF”“跟随系统”“深色模式”“模式说明”等新标记，CSS 含 `data-theme=dark` 和 `theme-switch`；聊天记录、技能条和报告进度条含读屏语义。Worker 健康检查在自定义域和 workers.dev 均返回 200；无 `Origin` 的 `/proxy` 请求返回 403 `origin_required`；带生产 `Origin` 的请求成功转发到 DeepSeek 并返回 401（未带 key，属预期）；HTTP 目标返回 400 `insecure_target`；响应含 `Access-Control-Allow-Origin` 与 `Vary: Origin`。物理编译器和物理 Worker 路径未部署，物理字体/包已从默认发布包移除；请求这些路径会被 Pages 回退成 index.html（200/text/html），默认构建不会请求它们。
 
 PowerShell 常用命令（在项目根目录执行；不含上线）：
 
