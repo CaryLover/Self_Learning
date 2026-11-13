@@ -14,20 +14,45 @@ const packages = [
   ["typed-physics-0.3.0", "3a29a1e71fe48d9af56b241b84f9770b68f7af6f7404e8497974d0a9f7eabc3c"],
 ] as const;
 
+/** 部署传播或网络抖动时重试大资源；不重试 4xx 以外的永久错误之外的解析结果。 */
+async function fetchAsset(url: URL, attempts = 3): Promise<Response> {
+  let last: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const response = await fetch(url);
+      if (response.ok && response.body) return response;
+      last = new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      last = error;
+    }
+    if (i < attempts - 1) await new Promise(resolve => setTimeout(resolve, 400 * (i + 1)));
+  }
+  throw last instanceof Error ? last : new Error("资源加载失败");
+}
+
 /** 仅用 typed-physics 的求解模块；图形由 diagram.ts 生成，不加载 CeTZ 或渲染器。 */
 async function solvePrepared<T extends SmoothInclineModel | HangingModel | CircuitModel, R>(prepared: { source: string; model: T; assumptions: string[] }, verify: (model: T, value: unknown) => boolean, assetBase?: string) {
   const base = new URL(assetBase ?? import.meta.env.BASE_URL, globalThis.location.href);
   if (base.origin !== globalThis.location.origin) throw new Error("物理资源必须来自本站");
   if (typeof DecompressionStream === "undefined") throw new Error("当前浏览器不支持物理编译器解压，请更换较新的浏览器");
-  const compilerResponse = await fetch(new URL("physics-runtime/typst-compiler.gz.bin", base));
-  if (!compilerResponse.ok || !compilerResponse.body) throw new Error("物理编译器加载失败");
+  let compilerResponse: Response;
+  try {
+    compilerResponse = await fetchAsset(new URL("physics-runtime/typst-compiler.gz.bin", base));
+  } catch {
+    throw new Error("物理编译器加载失败（已重试）");
+  }
+  if (!compilerResponse.body) throw new Error("物理编译器加载失败（无响应体）");
   const compilerBytes = await new Response(compilerResponse.body.pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
   const compilerHash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", compilerBytes)), b => b.toString(16).padStart(2, "0")).join("");
   if (compilerHash !== "1fc968438a672366dfec39c96c842c26ed29caff4eb1bcaab19a6c60867de5fd") throw new Error("物理编译器校验失败");
   const archives = new Map<string, Uint8Array>();
   await Promise.all(packages.map(async ([name, expected]) => {
-    const response = await fetch(new URL(`physics-packages/${name}.bin`, base));
-    if (!response.ok) throw new Error(`物理资源加载失败：${name}`);
+    let response: Response;
+    try {
+      response = await fetchAsset(new URL(`physics-packages/${name}.bin`, base));
+    } catch {
+      throw new Error(`物理资源加载失败：${name}（已重试）`);
+    }
     const bytes = new Uint8Array(await response.arrayBuffer());
     const digest = await crypto.subtle.digest("SHA-256", bytes);
     const actual = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");

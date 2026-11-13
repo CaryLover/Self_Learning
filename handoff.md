@@ -15,7 +15,7 @@
 ### 2. 版本管理：先保护工作区
 
 - 2026-11-13 代码提交：`8aee16e 完善图片题条件核对与无障碍提示`；此前 `2f1cda9 完善跨学科图形选择与练习自包含`、`eafe784 加固会话恢复、存储与代理安全`、`747a6a8`。均位于分支 `eli5-physics-fusion`；`master` 仍停在 `969604b`，未自动合并。
-- 同日已按用户指示部署：前端 Pages 部署 `a2e719a2`（`https://a2e719a2.zixue-xiaozhan.pages.dev`），生产域 `zixue.oj-codes.com` / `zixue-xiaozhan.pages.dev`，主 bundle `index-CR36pdbi.js`、CSS `index-CQ2cw51t.css`，按需加载 `PracticeCards-CJtfeemY.js`、`Eli5View-Bx35W1Gt.js`、`ChatView-CKwkSQ-c.js`、`SettingsView-3Sz1jHNb.js`，线上 ELI5 提示词版本 `2.6`；生产构建已启用 `VITE_ENABLE_PHYSICS=true`，包含压缩编译器约 10.84 MB、修改版 typed-physics 计算包约 94 KB 和物理 worker；不再包含 CeTZ、oxifmt、Typst 渲染器 WASM 或 NewCM 字体。Pages `_headers` 已启用 nosniff、Referrer-Policy、`X-Frame-Options: DENY`、HSTS，以及 `/assets/*` 一年 immutable 缓存；KaTeX 已升级到 0.19.1，生产依赖审计 0 漏洞；Worker `zixue-relay` 本轮未改动，仍为 `2fcd4a44-c611-42ff-bee7-e7ecfea5f51a`。物理预览提示已从“仅供开发测试”改为中性的“仍需人工审核；当前只覆盖有限题型”。
+- 同日已按用户指示部署：前端 Pages 部署 `76b49aa4`（`https://76b49aa4.zixue-xiaozhan.pages.dev`），生产域 `zixue.oj-codes.com` / `zixue-xiaozhan.pages.dev`，主 bundle `index-Bql6Jja-.js`、CSS `index-CQ2cw51t.css`，按需加载 `PracticeCards-C8QOIt2m.js`、`Eli5View-CjdD25Tm.js`、`ChatView-W1pxpcCc.js`、`SettingsView-CPgs1tEq.js`，物理 worker 为 `physics.worker-B1dh5nZh.js`，线上 ELI5 提示词版本 `2.6`；生产构建已启用 `VITE_ENABLE_PHYSICS=true`，包含压缩编译器约 10.84 MB、修改版 typed-physics 计算包约 94 KB 和物理 worker；不再包含 CeTZ、oxifmt、Typst 渲染器 WASM 或 NewCM 字体。Pages `_headers` 已启用 nosniff、Referrer-Policy、`X-Frame-Options: DENY`、HSTS，以及 `/assets/*` 一年 immutable 缓存；KaTeX 已升级到 0.19.1，生产依赖审计 0 漏洞；Worker `zixue-relay` 本轮未改动，仍为 `2fcd4a44-c611-42ff-bee7-e7ecfea5f51a`。物理预览提示已从“仅供开发测试”改为中性的“仍需人工审核；当前只覆盖有限题型”；编译器/计算包下载增加 3 次短重试，缓解部署传播或网络抖动导致的首次失败。
 - 记录部署的文档修改通常比代码提交晚一个提交；以 `git log -2 --oneline` 为准。
 - 先运行 `git status --short`、`git log -2 --oneline` 和 `git diff` 熟悉现状；还要检查 `git status` 中的 `??` 新文件，普通 `git diff` 不包含它们。若把项目交给其他环境，请确保完整携带所有已修改及未跟踪的项目源文件；忽略目录和敏感配置按需单独处理，勿把 API key 等秘密写入提交。
 - 当前环境可以写入 `.git`；继续提交时沿用项目的中文提交习惯，保留已有历史。提交前已扫描常见的硬编码密钥模式，未发现真实密钥；仍不要提交 `.env`、真实 API key 等。若要把成果合回 `master`，需由用户确认后再操作。
@@ -46,7 +46,7 @@
 
 2026-11-13 物理预览验收（本地 `VITE_ENABLE_PHYSICS=true`，使用者配置的真实模型）：斜面、悬挂（绳索修复后）、电路、人板静力均能生成并展示；人板三幅受力图在桌面和 390 宽度手机视口均无关键遮挡；缺角度进入待复核或错误提示，热传导走未核验文字退路，图片物理题按普通 ELI5 处理；初中斜面走文字退路、电路和悬挂可自动分流。该记录只覆盖实际操作的样例，不是独立题库正确率，也未覆盖 360 宽度、平板、其他浏览器、深色物理页和读屏朗读。物理预览仍未在线上启用，验收通过不自动等于上线授权。详细记录见 `docs/acceptance-checklist.md` 第 2.7 节。
 
-2026-11-13 物理预览上线（`a2e719a2`）：按用户明确指示用 `VITE_ENABLE_PHYSICS=true` 构建并部署，压缩编译器约 10.84 MB、计算包约 94 KB；不再包含 CeTZ、oxifmt、渲染器 WASM 或 NewCM 字体。修改版 typed-physics 仅保留 MIT 计算模块，斜面/悬挂/电路图由应用自绘 SVG。生产域冒烟已跑通斜面、悬挂、电路和热传导文字退路；390 宽度页面无横向溢出，电路页可打开。首次冷加载编译器曾出现一次“加载失败”，重试后成功，后续浏览器内下载约 4 秒；该首次失败已作为部署传播/冷启动风险记录。手机人工读屏和更完整视觉验收仍未完成。详见 `docs/physics-launch-checklist.md`。
+2026-11-13 物理预览上线（`76b49aa4`）：按用户明确指示用 `VITE_ENABLE_PHYSICS=true` 构建并部署，压缩编译器约 10.84 MB、计算包约 94 KB；不再包含 CeTZ、oxifmt、渲染器 WASM 或 NewCM 字体。修改版 typed-physics 仅保留 MIT 计算模块，斜面/悬挂/电路图由应用自绘 SVG。生产域冒烟已跑通斜面、悬挂、电路和热传导文字退路；390 宽度页面无横向溢出，电路页可打开。首次冷加载编译器曾出现一次“加载失败”，重试后成功，后续浏览器内下载约 4 秒；该首次失败已作为部署传播/冷启动风险记录。手机人工读屏和更完整视觉验收仍未完成。详见 `docs/physics-launch-checklist.md`。
 
 2026-11-13 已用使用者配置的真实 DeepSeek `deepseek-flash` 执行小规模评测：生产域完成 E01–E03、E08–E10、E13 等通用用例各 2 次；本地物理预览完成 E04 高中斜面、E06 悬挂各 2 次，E05 滑轮和 E07 热传导文字退路各 2 次；E04J 初中斜面文字退路 1 次；E12 条件不足在 2.5 下失败、提示词 2.6 本地复测 2 次均进入补充条件；部署 `96c8b2cc` 后线上复测 2 次也均为补充条件、0 道练习。E11 图片题补测 3 次：清晰图、缺条件图、轻模糊图均通过；缺条件图进入补充条件且 0 道练习，轻模糊图仍可辨认，不能代表严重模糊照片。详细结果和限制见 `docs/real-model-eval-results-2026-11-13.md`，用例见 `docs/real-model-eval-cases.md`（14 个）。这不是独立题库正确率认证，不能据此宣称 90%。
 
