@@ -52,6 +52,7 @@ SiliconFlow 卡片启用、地址改为 `http://127.0.0.1:8791/v1`、key 随便�
 - **防滥用**：Worker 校验 Origin 白名单；配置白名单后，缺少 Origin 的请求也会被拒绝；并提供基于单个运行实例内存的尽力限流。这些措施不能代替认证或全局限流。
 - **讲解页沙箱**：模型生成的 HTML 在禁用脚本的 `sandbox` iframe 中渲染，资源策略限制远程子资源加载。
 - **安全响应头**：Pages 通过 `_headers` 设置 `X-Content-Type-Options: nosniff`、`Referrer-Policy`、`X-Frame-Options: DENY` 和 HSTS，降低内容嗅探、点击劫持与降级风险。
+- **资源缓存**：带内容哈希的 `/assets/*` 使用一年 immutable 缓存；HTML 保持每次重验，发布后能及时加载新版本。
 
 ## 厂商支持（7 家预置）
 
