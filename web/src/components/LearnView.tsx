@@ -326,7 +326,7 @@ export function LearnView(props: LearnViewProps) {
       let physicsTextOnly = false;
       if ((import.meta.env.DEV || __PHYSICS_PREVIEW__) && (explicitPhysics || autoPhysics)) {
         if (explicitPhysics && s.grade !== "senior") {
-          commit({ ...s, eli5: { ...s.eli5!, stage: "error", error: "物理测试原型暂时只支持高中学段。" } });
+          commit({ ...s, eli5: { ...s.eli5!, stage: "error", error: "物理测试原型暂时只支持高中学段。初中请去掉开头的【物理测试】后重新发送，让预览分流自动判断。" } });
           return;
         }
         const [{ preparePhysicsLesson, physicsModelVersion }, { PhysicsWorkerError }] = await Promise.all([
