@@ -49,8 +49,10 @@ npx wrangler deploy
 
 ```bash
 cd web && npm run build
-npx wrangler pages deploy dist --project-name zixue-xiaozhan
+cd ../worker && npx wrangler pages deploy ../web/dist --project-name zixue-xiaozhan --branch main
 ```
+
+> 项目把 `wrangler` 装在 `worker/` 下；前端目录没有安装它，因此从 `worker/` 执行 Pages 上传。默认构建不启用物理预览；部署的是 `web/dist`，不要把预览构建发到正式站点。
 
 ## 三、回填 Origin 白名单
 
