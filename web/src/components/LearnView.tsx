@@ -759,6 +759,7 @@ export function LearnView(props: LearnViewProps) {
 
       {/* ---- 主区 ---- */}
       <main className="learn-main">
+        <h1 className="sr-only">自学小站 · 学习</h1>
         {/* 顶部：学习方式 + 模式说明 */}
         <div className="modelbar">
           <div className="seg-group mode-switch" role="tablist" aria-label="学习模式">

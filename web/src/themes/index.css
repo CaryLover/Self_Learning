@@ -54,11 +54,12 @@ html[data-grade="primary"] {
   --paper: #fff9ee;
   --card: #ffffff;
   --ink: #3d2e22;
-  --ink-2: #8d7a63;
+  --ink-2: #6f5d49;
+  --on-accent: #3d2e22;
   --line: #f0e2cc;
   --line-2: #e2c9a4;
   --accent: #ff7a3c;
-  --accent-ink: #c74e1c;
+  --accent-ink: #b83a0e;
   --accent-2: #25b8a5;
   --accent-2-soft: #d9f5ef;
   --accent-soft: #ffede0;
@@ -82,7 +83,8 @@ html[data-grade="junior"] {
   --paper: #f3faf7;
   --card: #ffffff;
   --ink: #22352f;
-  --ink-2: #6d827a;
+  --ink-2: #52665e;
+  --on-accent: #101114;
   --line: #deece6;
   --line-2: #c0dcd0;
   --accent: #0e9f7e;
@@ -108,7 +110,7 @@ html[data-grade="senior"] {
   --paper: #fafafa;
   --card: #ffffff;
   --ink: #1a1a1a;
-  --ink-2: #6b7280;
+  --ink-2: #66707d;
   --line: #e8e8e8;
   --line-2: #d2d2d2;
   --accent: #18181b;

@@ -57,13 +57,13 @@ export function SettingsView({
   }
 
   return (
-    <div className="settings">
-      <header className="settings-head">
+    <main className="settings">
+      <div className="settings-head">
         <h1><i className="ti ti-settings" aria-hidden="true"></i> 系统设置</h1>
         <button className="btn-link" onClick={goLearn}>
           ← 返回学习页
         </button>
-      </header>
+      </div>
 
       {/* ---- 单元一：孩子基础信息 ---- */}
       <section className="card profile-unit">
@@ -253,7 +253,7 @@ export function SettingsView({
           一键删除全部 API key
         </button>
       </footer>
-    </div>
+    </main>
   );
 }
 
@@ -335,6 +335,7 @@ function ProviderCard({
           <input
             type="checkbox"
             checked={state.enabled}
+            aria-label={`启用厂商 ${preset.name}`}
             onChange={(e) => onChange({ enabled: e.target.checked })}
           />
           <span className="switch-ui" />
@@ -416,6 +417,7 @@ function ProviderCard({
                       <input
                         type="checkbox"
                         checked={!!state.models[m]?.enabled}
+                        aria-label={`启用模型 ${m}`}
                         onChange={(e) =>
                           onChange({ models: { ...state.models, [m]: { enabled: e.target.checked } } })
                         }
@@ -455,6 +457,7 @@ function ProviderCard({
                         type="radio"
                         name={`default-${preset.id}`}
                         checked={defaultModel === m}
+                        aria-label={`将 ${m} 设为默认模型`}
                         onChange={() => onChange({ defaultModel: m })}
                       />
                       默认
