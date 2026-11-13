@@ -15,6 +15,8 @@ try {
   assert.match(explainPrompt[0].content, /图形形式要服从学科/);
   assert.match(explainPrompt[0].content, /时间轴/);
   assert.match(explainPrompt[0].content, /关键文字/);
+  assert.match(explainPrompt[0].content, /需要具体数值的题目/);
+  assert.match(explainPrompt[0].content, /不得用假设的示例数字冒充/);
   const practicePrompt = buildEli5PracticeMessages('junior', '光合作用', '植物利用光能', {}, {});
   assert.match(practicePrompt[0].content, /题目类型要服从学科/);
   assert.match(practicePrompt[0].content, /理科可为压轴题/);
@@ -39,7 +41,7 @@ try {
   await runEli5Pipeline({ grade: 'junior', topic: '数学', images: [], ctx: {}, signal: new AbortController().signal, call: async () => replies.shift(), update: state => states.push(state) });
   assert.equal(states[0].stage, 'practicing');
   assert.equal(states[1].stage, 'done');
-  assert.equal(states[1].promptVersion, '2.5');
+  assert.equal(states[1].promptVersion, '2.6');
   assert.equal(states[1].practices.length, 3);
   assert.equal(replies.length, 0);
   const wrongOrder = JSON.stringify(['持平', '培优', '进阶'].map(difficulty => ({ question: '问题', difficulty, answer: '答案', analysis: '解析' })));
