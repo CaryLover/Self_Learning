@@ -3,6 +3,8 @@ import { spawnSync } from "node:child_process";
 const checks = [
   "eli5Pipeline.test.mjs",
   "eli5View.test.mjs",
+  "sessionData.test.mjs",
+  "apiRequests.test.mjs",
   "markdown.test.mjs",
   "proxySettings.test.mjs",
   "gradePrompt.test.mjs",

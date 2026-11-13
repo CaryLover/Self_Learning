@@ -23,7 +23,7 @@ export function PracticeCards({ items, textOnly }: { items: PracticeItem[]; text
         {items.map((it, i) => (
           <li key={i} className="practice-card">
             <div className="practice-head">
-              <span className={`diff diff-${i < items.length ? it.difficulty : "持平"}`}>
+              <span className={`diff diff-${it.difficulty}`}>
                 {DIFF_LABEL[it.difficulty] ?? it.difficulty}
               </span>
               <span className="practice-no">第 {i + 1} 题</span>

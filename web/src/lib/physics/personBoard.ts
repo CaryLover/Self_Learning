@@ -84,8 +84,13 @@ export function solvePersonBoard(input: unknown): { model: PersonBoardModel; res
 }
 
 const fmt = (n: number) => Number(n.toPrecision(4)).toString();
+const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+function questionBlock(topic?: string): string {
+  const text = topic?.trim();
+  return text ? `<p><strong>题目：</strong>${escape(text.slice(0, 500))}</p>` : "";
+}
 
-export function composePersonBoard(model: PersonBoardModel, result: PersonBoardResult): string {
+export function composePersonBoard(model: PersonBoardModel, result: PersonBoardResult, topic?: string): string {
   const expected = solvePersonBoard(model).result;
   if (JSON.stringify(result) !== JSON.stringify(expected)) throw new Error("人板受力结果未通过核对");
   const person = result.person;
@@ -103,7 +108,7 @@ export function composePersonBoard(model: PersonBoardModel, result: PersonBoardR
     const legend = forces.map((force, index) => `<li>${index + 1}. ${names[index]}：${force.y === 1 ? "向上" : "向下"}，${fmt(force.magnitude)} N</li>`).join("");
     return `<section><h2>${title}</h2><svg class="fbd" viewBox="0 0 400 220" role="img" aria-label="${object}的受力方向图，编号对应下方说明"><rect x="50" y="90" width="300" height="40" rx="10" fill="#e3f2e9" stroke="#55766a"/><text x="200" y="116" text-anchor="middle" font-size="18" fill="#1d3330">${object}</text>${arrows}</svg><ul>${legend}</ul>${note ? `<p>${note}</p>` : ""}</section>`;
   };
-  return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font:18px/1.6 system-ui,sans-serif;color:#1d3330;margin:0;padding:24px}main{max-width:860px;margin:auto}section{border:1px solid #d5e6de;border-radius:12px;padding:12px 18px;margin:16px 0}h1{font-size:1.5rem}h2{font-size:1.1rem}li{margin:.5rem 0}.scene,.fbd{display:block;width:min(100%,440px);height:auto;margin:auto}@media(max-width:480px){body{padding:16px}}</style></head><body><main><h1>人、板和整体分别受什么力？</h1><p>人站在水平板上，板由地面支持；竖直绷紧的固定绳只向上拉人。人和板均静止，并且没有其他外力。${assumption}</p>
+  return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font:18px/1.6 system-ui,sans-serif;color:#1d3330;margin:0;padding:24px}main{max-width:860px;margin:auto}section{border:1px solid #d5e6de;border-radius:12px;padding:12px 18px;margin:16px 0}h1{font-size:1.5rem}h2{font-size:1.1rem}li{margin:.5rem 0}.scene,.fbd{display:block;width:min(100%,440px);height:auto;margin:auto}@media(max-width:480px){body{padding:16px}}</style></head><body><main><h1>人、板和整体分别受什么力？</h1>${questionBlock(topic)}<p>人站在水平板上，板由地面支持；竖直绷紧的固定绳只向上拉人。人和板均静止，并且没有其他外力。${assumption}</p>
 <svg class="scene" viewBox="0 0 400 230" role="img" aria-label="示意图：人站在地面支持的板上，竖直固定绳向上拉人"><line x1="80" y1="20" x2="320" y2="20" stroke="#354c48" stroke-width="5"/><line x1="200" y1="20" x2="200" y2="55" stroke="#6a5744" stroke-width="3"/><circle cx="200" cy="70" r="15" fill="#e8b76d"/><path d="M200 85 L200 130 M200 98 L180 117 M200 98 L220 117 M200 130 L185 170 M200 130 L215 170" fill="none" stroke="#354c48" stroke-width="6" stroke-linecap="round"/><rect x="110" y="172" width="180" height="16" rx="3" fill="#b58a59"/><line x1="55" y1="190" x2="345" y2="190" stroke="#536963" stroke-width="5"/><text x="235" y="57" font-size="17" fill="#354c48">固定绳</text><text x="235" y="114" font-size="17" fill="#354c48">人</text><text x="300" y="185" font-size="17" fill="#354c48">板</text><text x="300" y="215" font-size="17" fill="#354c48">地面</text></svg>
 <p>下面的箭头表示力的方向，长度不表示力的大小。每幅图下方都有编号说明。</p>
 ${panel("① 研究人", "人", person, ["人的重力", "板对人的支持力", "绳对人的拉力"])}

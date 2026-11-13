@@ -13,6 +13,7 @@ try {
   const { checkEli5Html, runEli5Pipeline, runEli5Practice, runEli5UnverifiedFallback } = await import(pathToFileURL(outfile).href);
   const valid = '<!DOCTYPE html><html><head></head><body><p>这是一幅图</p><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg></body></html>';
   assert.equal(checkEli5Html(valid), null);
+  assert.match(checkEli5Html(valid.replace('</body>', `${'x'.repeat(500_001)}</body>`)), /内容过长/);
   assert.equal(checkEli5Html(valid.replace('<svg ', '<svg style="fill:url(#gradient)" ')), null);
   assert.equal(checkEli5Html(valid.replace('<svg ', '<svg style="fill:url(\'#gradient\')" ')), null);
   assert.ok(checkEli5Html(valid.replace('<svg ', '<svg style="fill:url(https://example.com/a.png)" ')));
@@ -23,6 +24,7 @@ try {
   assert.ok(checkEli5Html(valid, true));
   assert.ok(checkEli5Html(valid.replace('</body>', '<script>alert(1)</script></body>')));
   assert.ok(checkEli5Html(valid.replace('</body>', '<img src="https://example.com/a.png"></body>')));
+  assert.ok(checkEli5Html(valid.replace('</head>', '<meta http-equiv="refresh" content="0;url=https://example.com"></head>')));
   const exercise = JSON.stringify(Array.from({ length: 3 }, (_, i) => ({ question: `问题${i}`, difficulty: ['持平', '进阶', '培优'][i], answer: '答案', analysis: '解析' })));
   const replies = ['bad', valid, 'bad json', exercise];
   const states = [];
@@ -51,6 +53,14 @@ try {
   assert.equal(missingStates.at(-1).stage, 'error');
   assert.equal(missingStates.at(-1).html, valid);
   assert.equal(missingStates.at(-1).retryPractice, true);
+  const oversizedPractice = JSON.stringify(['持平', '进阶', '培优'].map((difficulty, index) => ({ question: index === 1 ? 'x'.repeat(4001) : '问题', difficulty, answer: '答案', analysis: '解析' })));
+  const oversizedStates = [];
+  let oversizedCalls = 0;
+  await runEli5Pipeline({ grade: 'junior', topic: '数学', images: [], ctx: {}, signal: new AbortController().signal, call: async () => oversizedCalls++ === 0 ? valid : oversizedPractice, update: state => oversizedStates.push(state) });
+  assert.equal(oversizedCalls, 3);
+  assert.equal(oversizedStates.at(-1).stage, 'error');
+  assert.equal(oversizedStates.at(-1).retryPractice, true);
+  assert.equal(oversizedStates.at(-1).practices, undefined);
   const picture = 'data:image/png;base64,dGVzdA==';
   const messages = [];
   const pictureStates = [];

@@ -14,8 +14,10 @@ function hasUnsafeCssUrl(html: string): boolean {
 }
 
 export function checkEli5Html(html: string | null, textOnly = false): string | null {
-  if (!html || !/^\s*<!doctype\s+html\s*>/i.test(html) || !/<html\b[^>]*>[\s\S]*<\/html\s*>\s*$/i.test(html) || !/<body\b[^>]*>[\s\S]*<\/body\s*>/i.test(html)) return "需要完整 HTML 文档";
-  if (/<\s*(?:script|iframe|object|embed|link|base)\b/i.test(html) || /\son\w+\s*=/i.test(html) || /(?:javascript\s*:|@import\b)/i.test(html) || hasUnsafeCssUrl(html) || /\s(?:src|href|xlink:href)\s*=\s*["']?\s*(?:https?:|\/\/)/i.test(html)) return "包含不允许的脚本或外部资源";
+  if (!html) return "需要完整 HTML 文档";
+  if (html.length > 500_000) return "讲解页内容过长，请精简页面";
+  if (!/^\s*<!doctype\s+html\s*>/i.test(html) || !/<html\b[^>]*>[\s\S]*<\/html\s*>\s*$/i.test(html) || !/<body\b[^>]*>[\s\S]*<\/body\s*>/i.test(html)) return "需要完整 HTML 文档";
+  if (/<\s*(?:script|iframe|object|embed|link|base)\b/i.test(html) || /\son\w+\s*=/i.test(html) || /(?:javascript\s*:|@import\b)/i.test(html) || /<meta\b[^>]*http-equiv\s*=\s*["']?\s*refresh/i.test(html) || hasUnsafeCssUrl(html) || /\s(?:src|href|xlink:href)\s*=\s*["']?\s*(?:https?:|\/\/)/i.test(html)) return "包含不允许的脚本、自动跳转或外部资源";
   const body = html.match(/<body\b[^>]*>([\s\S]*?)<\/body\s*>/i)?.[1] ?? "";
   if (textOnly && /<\s*(?:svg|canvas|img|picture|video|audio)\b/i.test(html)) return "当前只支持文字讲解，请不要生成图形";
   if (textOnly && !htmlToText(body)) return "讲解页面没有文字内容";
@@ -29,8 +31,10 @@ function parsePractices(text: string, textOnly = false): PracticeItem[] | null {
   if (!items.every((item) => item && typeof item === "object" && ["question", "answer", "analysis"].every((key) => typeof item[key] === "string" && item[key].trim()) && ["持平", "进阶", "培优"].includes(item.difficulty))) return null;
   const ranks = items.map(item => ["持平", "进阶", "培优"].indexOf(item.difficulty));
   if (ranks[0] !== 0 || ranks[ranks.length - 1] !== 2 || !ranks.includes(1) || ranks.some((rank, index) => index > 0 && rank < ranks[index - 1])) return null;
-  if (textOnly && items.some(item => [item.question, item.answer, item.analysis].some(value => /!\s*\[|https?:\/\/|<\s*(?:svg|img|canvas|picture|video|audio)\b/i.test(value)))) return null;
-  return items as PracticeItem[];
+  const list = items as PracticeItem[];
+  if (list.some(item => [item.question, item.answer, item.analysis].some(value => value.length > 4000)) || JSON.stringify(list).length > 60_000) return null;
+  if (textOnly && list.some(item => [item.question, item.answer, item.analysis].some(value => /!\s*\[|https?:\/\/|<\s*(?:svg|img|canvas|picture|video|audio)\b/i.test(value)))) return null;
+  return list;
 }
 
 function needsClarification(html: string): boolean {
@@ -103,7 +107,7 @@ export async function runEli5Practice(options: {
     let praw = await call(pmsgs, signal);
     let practices = parsePractices(praw, textOnly);
     if (!practices) {
-      pmsgs = [...pmsgs, { role: "assistant", content: praw }, { role: "user", content: `请只输出 3–5 道练习的 JSON 数组，每项包含非空 question、answer、analysis 和 difficulty。第一题为持平，至少一道进阶，最后一题培优，难度依次不降低。${textOnly ? "只用文字，不得包含图片、图表或图形。" : ""}` }];
+      pmsgs = [...pmsgs, { role: "assistant", content: praw }, { role: "user", content: `请只输出 3–5 道练习的 JSON 数组，每项包含非空 question、answer、analysis 和 difficulty。第一题为持平，至少一道进阶，最后一题培优，难度依次不降低；每项文字保持简短（各不超过 4000 字符）。${textOnly ? "只用文字，不得包含图片、图表或图形。" : ""}` }];
       praw = await call(pmsgs, signal);
       practices = parsePractices(praw, textOnly);
     }

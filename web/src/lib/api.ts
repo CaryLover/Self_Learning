@@ -20,6 +20,17 @@ export function buildRequestUrl(proxyUrl: string, vendorEndpoint: string): strin
 
 function friendlyError(status: number, vendorMsg: string): string {
   const detail = vendorMsg ? `（${vendorMsg}）` : "";
+  const relay: Record<string, string> = {
+    origin_not_allowed: "代理拒绝了当前来源",
+    origin_required: "代理要求浏览器来源（Origin）",
+    host_not_allowed: "代理不允许这个厂商地址",
+    rate_limited: "代理请求过于频繁",
+    insecure_target: "代理只允许 HTTPS 或本机地址",
+    upstream_fetch_failed: "代理无法连接厂商",
+    bad_target: "厂商地址格式不正确",
+    bad_target_protocol: "厂商地址协议不受支持",
+  };
+  if (relay[vendorMsg]) return `请求失败：${relay[vendorMsg]}。请家长在「系统设置」检查代理和厂商地址。`;
   if (status === 401 || status === 403) return `密钥无效或无权限，请家长在设置页检查 API key${detail}`;
   if (status === 429) return `请求太频繁或额度不足，稍后再试${detail}`;
   if (status >= 500) return `厂商服务暂时不可用，试试切换模型或厂商${detail}`;
@@ -30,7 +41,8 @@ async function readErrorBody(resp: Response): Promise<string> {
   try {
     const text = await resp.text();
     try {
-      const j = JSON.parse(text) as { error?: { message?: string }; message?: string };
+      const j = JSON.parse(text) as { error?: { message?: string } | string; message?: string };
+      if (typeof j.error === "string") return j.error;
       return j.error?.message ?? j.message ?? text.slice(0, 200);
     } catch {
       return text.slice(0, 200);
@@ -87,6 +99,7 @@ export async function chatRequest(opts: ChatRequestOptions): Promise<string> {
     model: opts.model,
     messages: opts.messages,
     stream: opts.stream,
+    ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
   });
   const resp = await fetch(buildRequestUrl(opts.proxyUrl ?? "", opts.endpoint), {
     method: "POST",
@@ -114,6 +127,20 @@ export interface ProviderTestResult {
   latencyMs: number;
 }
 
+/** 设置页的探测请求不应无限等待；超时后中止并给出明确提示。 */
+async function withTimeout<T>(run: (signal: AbortSignal) => Promise<T>, ms = 20_000): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await run(controller.signal);
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error(`请求超时（${Math.round(ms / 1000)} 秒）`);
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** 测试厂商连通性：默认 1-token 对话请求（所有预置厂商通用，ModelScope 也校验 key） */
 export async function testProvider(
   proxyUrl: string,
@@ -124,17 +151,20 @@ export async function testProvider(
   const t0 = performance.now();
   const endpoint = `${base.replace(/\/+$/, "")}/chat/completions`;
   try {
-    const text = await chatRequest({
+    const text = await withTimeout((signal) => chatRequest({
       endpoint,
       apiKey,
       model,
       messages: [{ role: "user", content: "hi" }],
       stream: false,
+      maxTokens: 1,
       proxyUrl,
-    });
+      signal,
+    }));
     const ms = Math.round(performance.now() - t0);
     if (text.trim()) return { ok: true, message: `连接成功（${ms}ms）`, latencyMs: ms };
-    return { ok: false, message: `连接成功但返回为空，请确认模型名是否正确`, latencyMs: ms };
+    // 推理模型或很低的输出上限可能返回空文字，但 2xx 已证明地址、密钥和模型可访问。
+    return { ok: true, message: `连接成功（${ms}ms，未返回文字）`, latencyMs: ms };
   } catch (e) {
     const ms = Math.round(performance.now() - t0);
     return { ok: false, message: e instanceof Error ? e.message : "未知错误", latencyMs: ms };
@@ -144,11 +174,14 @@ export async function testProvider(
 /** 拉取厂商模型列表（GET /models）；GLM 等拉不到时由调用方回退内置清单 */
 export async function fetchModelList(proxyUrl: string, base: string, apiKey: string): Promise<string[]> {
   const endpoint = `${base.replace(/\/+$/, "")}/models`;
-  const resp = await fetch(buildRequestUrl(proxyUrl, endpoint), {
-    headers: { Authorization: `Bearer ${apiKey}` },
+  const data = await withTimeout(async (signal) => {
+    const resp = await fetch(buildRequestUrl(proxyUrl, endpoint), {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal,
+    });
+    if (!resp.ok) throw new ApiError(friendlyError(resp.status, await readErrorBody(resp)), resp.status);
+    return (await resp.json()) as { data?: { id?: string }[] };
   });
-  if (!resp.ok) throw new ApiError(friendlyError(resp.status, await readErrorBody(resp)), resp.status);
-  const data = (await resp.json()) as { data?: { id?: string }[] };
   const ids = (data.data ?? []).map((m) => m.id).filter((x): x is string => !!x);
   // 只保留文本对话可用性较高的模型名（过滤 embedding / rerank / vision 等非对话模型）
   const drop = /(embed|rerank|vector|whisper|tts|speech|audio|image|video|ocr|moderation|guard|speech2text|doubao-embedding)/i;
@@ -159,8 +192,10 @@ export async function fetchModelList(proxyUrl: string, base: string, apiKey: str
 export async function testProxy(proxyUrl: string): Promise<ProviderTestResult> {
   const t0 = performance.now();
   try {
-    const resp = await fetch(`${proxyUrl.replace(/\/+$/, "")}/`);
-    const j = (await resp.json()) as { name?: string; version?: string };
+    const j = await withTimeout(async (signal) => {
+      const resp = await fetch(`${proxyUrl.replace(/\/+$/, "")}/`, { signal });
+      return (await resp.json()) as { name?: string; version?: string };
+    });
     const ms = Math.round(performance.now() - t0);
     if (j.name === "zixue-relay") {
       return { ok: true, message: `代理连通 v${j.version}（${ms}ms）`, latencyMs: ms };

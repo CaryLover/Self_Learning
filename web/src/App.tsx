@@ -24,6 +24,8 @@ export default function App() {
   const [current, setCurrent] = useState<Session | null>(null);
   // 每次打开网站先弹出信息确认框（内容预填自本地存档，可直接修改）
   const [onboardMode, setOnboardMode] = useState<OnboardMode>("startup");
+  // 本机存储写入失败（隐私模式、配额、策略限制）时提示，避免误以为已保存
+  const [storageWarn, setStorageWarn] = useState(false);
 
   // 路由（hash）
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function App() {
 
   // 会话列表
   useEffect(() => {
-    void listSessions().then(setSessions).catch(() => undefined);
+    void listSessions().then(setSessions).catch(() => setStorageWarn(true));
   }, []);
 
   const goPage = useCallback((p: Page) => {
@@ -57,7 +59,7 @@ export default function App() {
       const next = exists ? list.map((x) => (x.id === stamped.id ? stamped : x)) : [stamped, ...list];
       return next.sort((a, b) => b.updatedAt - a.updatedAt);
     });
-    void putSession(stamped).catch(() => undefined);
+    void putSession(stamped).catch(() => setStorageWarn(true));
   }, []);
 
   const onNewSession = useCallback((opts?: { mode?: Mode; grade?: Grade }) => {
@@ -74,7 +76,7 @@ export default function App() {
     };
     setCurrent(s);
     setSessions((list) => [s, ...list]);
-    void putSession(s).catch(() => undefined);
+    void putSession(s).catch(() => setStorageWarn(true));
   }, [prefs.mode, prefs.grade]);
 
   const onOpenSession = useCallback((id: string) => {
@@ -83,26 +85,26 @@ export default function App() {
         setCurrent(recoverSession(s));
         setPrefs((p) => ({ ...p, mode: s.mode }));
       }
-    });
+    }).catch(() => setStorageWarn(true));
   }, []);
 
   const onDeleteSession = useCallback(
     (id: string) => {
       setSessions((list) => list.filter((s) => s.id !== id));
       if (current?.id === id) setCurrent(null);
-      void deleteSession(id).catch(() => undefined);
+      void deleteSession(id).catch(() => setStorageWarn(true));
     },
     [current?.id],
   );
 
   const onChangeSettings = useCallback((s: Settings) => {
     setSettings(s);
-    saveSettings(s);
+    if (!saveSettings(s)) setStorageWarn(true);
   }, []);
 
   const onChangePrefs = useCallback((p: UiPrefs) => {
     setPrefs(p);
-    saveUiPrefs(p);
+    if (!saveUiPrefs(p)) setStorageWarn(true);
   }, []);
 
   // ---------------------------------------------------------------- 孩子档案
@@ -146,6 +148,18 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {storageWarn && (
+        <div className="api-banner" role="alert">
+          <span>
+            <i className="ti ti-alert-triangle" aria-hidden="true"></i>{" "}
+            <b>本机存储不可用或已满</b>：学习记录和设置可能无法保存，刷新后可能丢失。请退出隐私模式或清理浏览器存储后重试。
+          </span>
+          <button className="btn-link" onClick={() => setStorageWarn(false)}>
+            知道了
+          </button>
+        </div>
+      )}
 
       <LearnView
         active={page === "learn"}

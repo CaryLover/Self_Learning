@@ -72,8 +72,14 @@ export function loadSettings(): Settings {
   }
 }
 
-export function saveSettings(s: Settings): void {
-  localStorage.setItem(KEY, JSON.stringify(s));
+export function saveSettings(s: Settings): boolean {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(s));
+    return true;
+  } catch {
+    // 隐私模式、存储配额或策略限制：不中断界面，由调用方提示无法保存。
+    return false;
+  }
 }
 
 export function clearAllKeys(s: Settings): Settings {
@@ -89,15 +95,25 @@ export function clearAllKeys(s: Settings): Settings {
 export function loadUiPrefs(): UiPrefs {
   try {
     const raw = localStorage.getItem(UI_KEY);
-    if (raw) return JSON.parse(raw) as UiPrefs;
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<UiPrefs> | null;
+      const grade = parsed?.grade === "primary" || parsed?.grade === "junior" || parsed?.grade === "senior" ? parsed.grade : "primary";
+      const mode = parsed?.mode === "eli5" || parsed?.mode === "socratic" ? parsed.mode : "eli5";
+      return { grade, mode };
+    }
   } catch {
     /* 忽略 */
   }
   return { grade: "primary", mode: "eli5" };
 }
 
-export function saveUiPrefs(p: UiPrefs): void {
-  localStorage.setItem(UI_KEY, JSON.stringify(p));
+export function saveUiPrefs(p: UiPrefs): boolean {
+  try {
+    localStorage.setItem(UI_KEY, JSON.stringify(p));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ---- 孩子端视角：只看启用的厂商与模型 ----

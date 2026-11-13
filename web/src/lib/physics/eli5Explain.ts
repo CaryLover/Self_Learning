@@ -20,6 +20,11 @@ type Candidate = Extract<Awaited<ReturnType<typeof preparePhysicsLesson>>, { sta
 
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+/** 显式物理测试题在会话里保留前缀；固定页面使用去掉前缀的题目。 */
+function physicsQuestion(topic?: string): string | undefined {
+  return topic?.startsWith("【物理测试】") ? topic.slice("【物理测试】".length).trim() : topic;
+}
+
 /** 重试讲解只恢复已保存的物理图、事实和练习，不重新计算。 */
 export function restorePhysicsCandidate(state: Eli5State): Candidate | null {
   const preview = state.physicsPreview;
@@ -37,7 +42,7 @@ export function restorePhysicsCandidate(state: Eli5State): Candidate | null {
       case "smooth-incline": {
         const checked = validateSmoothIncline(model);
         if (!checked.ok) return null;
-        html = composeInclineLesson(model, preview.result, svg);
+        html = composeInclineLesson(model, preview.result, svg, physicsQuestion(state.topic));
         practices = buildInclinePractices(model, preview.result);
         assumptions = checked.assumptions;
         break;
@@ -45,14 +50,14 @@ export function restorePhysicsCandidate(state: Eli5State): Candidate | null {
       case "hanging-at-rest": {
         const checked = validateHanging(model);
         if (!checked.ok) return null;
-        html = composeHangingLesson(model, preview.result, svg);
+        html = composeHangingLesson(model, preview.result, svg, physicsQuestion(state.topic));
         practices = buildHangingPractices(model, preview.result);
         assumptions = checked.assumptions;
         break;
       }
       case "resistive-circuit": {
         if (!validateCircuit(model).ok) return null;
-        html = composeCircuitLesson(model, preview.result, svg);
+        html = composeCircuitLesson(model, preview.result, svg, physicsQuestion(state.topic));
         practices = buildCircuitPractices(model, preview.result);
         assumptions = [];
         break;
@@ -60,7 +65,7 @@ export function restorePhysicsCandidate(state: Eli5State): Candidate | null {
       case "person-board-rest": {
         const checked = validatePersonBoard(model);
         if (!checked.ok) return null;
-        html = composePersonBoard(model, preview.result as PersonBoardResult);
+        html = composePersonBoard(model, preview.result as PersonBoardResult, physicsQuestion(state.topic));
         practices = personBoardPractices(model, preview.result as PersonBoardResult);
         assumptions = checked.assumptions;
         break;

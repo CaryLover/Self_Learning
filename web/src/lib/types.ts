@@ -140,6 +140,7 @@ export interface ChatRequestOptions {
   model: string;
   messages: ChatMessage[];
   stream: boolean;
+  maxTokens?: number; // 仅用于设置页连通性测试等需要限制输出的请求
   proxyUrl?: string; // 转发代理地址；留空则浏览器直连
   signal?: AbortSignal;
   onDelta?: (text: string) => void;

@@ -64,7 +64,7 @@ export default {
     // ---- 来源校验（防盗用） ----
     const originErr = checkOrigin(origin, env);
     if (originErr) {
-      return corsResponse(json({ error: "origin_not_allowed" }, 403), origin, env);
+      return corsResponse(json({ error: originErr }, 403), origin, env);
     }
 
     // ---- 简单限流（每 isolate 内存版，尽力而为） ----
@@ -86,6 +86,11 @@ export default {
     }
     if (target.protocol !== "https:" && target.protocol !== "http:") {
       return corsResponse(json({ error: "bad_target_protocol" }, 400), origin, env);
+    }
+    // 非本机目标必须使用 HTTPS，避免把授权头经明文转发到厂商域名。
+    const loopback = target.hostname === "127.0.0.1" || target.hostname === "localhost" || target.hostname === "::1" || target.hostname === "[::1]";
+    if (target.protocol === "http:" && !loopback) {
+      return corsResponse(json({ error: "insecure_target" }, 400), origin, env);
     }
     const allowed = env.ALLOWED_HOSTS
       ? env.ALLOWED_HOSTS.split(",").map((s) => s.trim()).filter(Boolean)
@@ -131,7 +136,7 @@ export default {
 function checkOrigin(origin: string | null, env: Env): string | null {
   const list = (env.ALLOWED_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   if (list.length === 0 || list.includes("*")) return null; // 未配置 = 不限制
-  if (!origin) return null; // 同源/服务端请求没有 Origin，放行
+  if (!origin) return "origin_required"; // 配置了白名单时，浏览器请求必须带 Origin
   return list.includes(origin) ? null : "origin_not_allowed";
 }
 
@@ -163,6 +168,7 @@ function corsResponse(resp: Response, origin: string | null, env: Env): Response
   const anyOrigin = list.length === 0 || list.includes("*");
   const headers = new Headers(resp.headers);
   headers.set("Access-Control-Allow-Origin", anyOrigin ? "*" : origin ?? "*");
+  headers.set("Vary", "Origin");
   headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, X-Target-Url");
   headers.set("Access-Control-Max-Age", "86400");

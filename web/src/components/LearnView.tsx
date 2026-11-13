@@ -46,6 +46,7 @@ export function LearnView(props: LearnViewProps) {
   const [preparingImages, setPreparingImages] = useState(false);
   const preparingImagesRef = useRef(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [reportBusy, setReportBusy] = useState(false);
   const [streamText, setStreamText] = useState("");
@@ -344,7 +345,7 @@ export function LearnView(props: LearnViewProps) {
           });
         } catch (error) {
           if (!(error instanceof PhysicsWorkerError) || ac.signal.aborted) throw error;
-          commit({ ...s, eli5: { ...s.eli5!, stage: "error", retryLesson: true, error: `物理工具处理失败：${error.message}。请检查网络或浏览器后重新生成讲解。` } });
+          commit({ ...s, eli5: { ...s.eli5!, stage: "error", retryLesson: true, unverifiedFallback: autoPhysics, error: `物理工具处理失败：${error.message}。请检查网络或浏览器后重新生成讲解。` } });
           return;
         }
         if (candidate.status === "not_applicable" || candidate.status === "unsupported") {
@@ -383,6 +384,11 @@ export function LearnView(props: LearnViewProps) {
 
   async function retryEli5Lesson(): Promise<void> {
     if (busy || !current?.eli5?.retryLesson || !current.eli5.topic) return;
+    // 已经在未核验文字退路上的失败，继续走文字退路，不重新触发物理分析。
+    if (current.eli5.unverifiedFallback && current.eli5.physicsTextOnly) {
+      await continueEli5Unverified();
+      return;
+    }
     const originalImages = recoverLessonImages(current);
     if (!originalImages) {
       commit({ ...current, eli5: { ...current.eli5, retryLesson: false, error: "原题图片无法完整恢复，请重新上传图片并提交题目。" } });
@@ -422,7 +428,7 @@ export function LearnView(props: LearnViewProps) {
     const timer = window.setTimeout(() => { timedOut = true; ac.abort(); }, 180_000);
     let s: Session = {
       ...current,
-      eli5: { ...initial, stage: "explaining", error: undefined, html: undefined, practices: undefined, retryLesson: false, retryPractice: false, unverifiedFallback: false, physicsUnverified: true, physicsTextOnly: true },
+      eli5: { ...initial, stage: "explaining", error: undefined, html: undefined, practices: undefined, retryLesson: false, retryPractice: false, retryPhysicsExplanation: false, unverifiedFallback: false, physicsPreview: undefined, pendingPhysicsPractices: undefined, physicsUnverified: true, physicsTextOnly: true },
     };
     commit(s);
     try {
@@ -480,13 +486,27 @@ export function LearnView(props: LearnViewProps) {
     if (!(import.meta.env.DEV || __PHYSICS_PREVIEW__)) return;
     const initial = current?.eli5;
     if (busy || !current || !initial?.retryPhysicsExplanation) return;
-    const { finishPhysicsWithoutExplanation } = await import("../lib/physics/eli5Explain");
-    const next = finishPhysicsWithoutExplanation(initial);
-    if (!next) {
-      commit({ ...current, eli5: { ...initial, stage: "error", html: undefined, physicsPreview: undefined, pendingPhysicsPractices: undefined, retryPhysicsExplanation: false, retryLesson: true, error: "已保存的物理结果未通过恢复检查，请重新生成讲解。" } });
-      return;
+    setBusy(true);
+    try {
+      const { finishPhysicsWithoutExplanation } = await import("../lib/physics/eli5Explain");
+      const next = finishPhysicsWithoutExplanation(initial);
+      if (!next) {
+        commit({ ...current, eli5: { ...initial, stage: "error", html: undefined, physicsPreview: undefined, pendingPhysicsPractices: undefined, retryPhysicsExplanation: false, retryLesson: true, error: "已保存的物理结果未通过恢复检查，请重新生成讲解。" } });
+        return;
+      }
+      commit({ ...current, eli5: next });
+    } catch {
+      commit({ ...current, eli5: { ...initial, stage: "error", error: "无法加载物理讲解恢复模块，请重新生成讲解。", retryPhysicsExplanation: true } });
+    } finally {
+      setBusy(false);
     }
-    commit({ ...current, eli5: next });
+  }
+
+  /** 练习反复生成失败时，允许保留讲解、直接结束本次学习。 */
+  function skipEli5Practice(): void {
+    const eli5 = current?.eli5;
+    if (busy || !current || !eli5?.retryPractice || !eli5.html) return;
+    commit({ ...current, eli5: { ...eli5, stage: "done", retryPractice: false, error: undefined } });
   }
 
   async function retryEli5Practice(): Promise<void> {
@@ -590,6 +610,17 @@ export function LearnView(props: LearnViewProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, canVision, images.length]);
 
+  // 生成期间关闭或刷新页面会中断请求：先让浏览器提示一次，减少误操作丢失结果。
+  useEffect(() => {
+    if (!busy) return;
+    function onBeforeUnload(e: BeforeUnloadEvent): void {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [busy]);
+
   async function handleSend(): Promise<void> {
     const text = input.trim();
     if (busy) return;
@@ -630,9 +661,12 @@ export function LearnView(props: LearnViewProps) {
       images: sending.length > 0 ? sending : undefined,
       ts: Date.now(),
     };
+    const displayTitle = padded === "请讲解这张图片里的题目。"
+      ? "图片题目"
+      : padded.replace(/^【物理测试】/, "").trim().slice(0, 24) || "新的学习";
     s = {
       ...s,
-      title: s.title || (padded === "请讲解这张图片里的题目。" ? "图片题目" : padded.slice(0, 24)),
+      title: s.title || displayTitle,
       messages: [...s.messages, userMsg],
       turns: [
         ...s.turns,
@@ -655,11 +689,24 @@ export function LearnView(props: LearnViewProps) {
     }
   }
 
+  /** 把当前题目放回输入框，便于补充条件或修改后重新提交。 */
+  function editTopic(): void {
+    const eli5 = current?.eli5;
+    if (!eli5?.topic) return;
+    const topic = eli5.topic.replace(/^【物理测试】/, "").trim();
+    if (!topic || topic === "请讲解这张图片里的题目。") return;
+    setInput(topic);
+    setImgErr(null);
+    requestAnimationFrame(() => composerRef.current?.focus());
+  }
+
   // ---------------------------------------------------------------- 渲染
 
   const isSocratic = (current?.mode ?? prefs.mode) === "socratic";
   const useMode: Mode = current?.mode ?? prefs.mode;
   const useGrade: Grade = current?.grade ?? prefs.grade;
+  const editTopicText = current?.eli5?.topic?.replace(/^【物理测试】/, "").trim() ?? "";
+  const canEditTopic = !!current?.eli5 && !!editTopicText && editTopicText !== "请讲解这张图片里的题目。" && !current.eli5.retryPractice && !current.eli5.retryPhysicsExplanation;
 
   return (
     <div className="learn" style={active ? undefined : { display: "none" }}>
@@ -798,7 +845,7 @@ export function LearnView(props: LearnViewProps) {
           </div>
         ) : (
           <div className="chat-layout single">
-            <Eli5View eli5={current.eli5} busy={busy} onRetryLesson={() => void retryEli5Lesson()} onRetryPractice={() => void retryEli5Practice()} onRetryPhysicsExplanation={() => void retryPhysicsExplanation()} onSkipPhysicsExplanation={() => void skipPhysicsExplanation()} onContinueUnverified={() => void continueEli5Unverified()} physicsRetryEnabled={import.meta.env.DEV || __PHYSICS_PREVIEW__} />
+            <Eli5View eli5={current.eli5} busy={busy} onRetryLesson={() => void retryEli5Lesson()} onRetryPractice={() => void retryEli5Practice()} onSkipPractice={skipEli5Practice} onRetryPhysicsExplanation={() => void retryPhysicsExplanation()} onSkipPhysicsExplanation={() => void skipPhysicsExplanation()} onContinueUnverified={() => void continueEli5Unverified()} onEditTopic={canEditTopic ? editTopic : undefined} physicsRetryEnabled={import.meta.env.DEV || __PHYSICS_PREVIEW__} />
             {!current.eli5 || current.eli5.stage === "idle" ? (
               <div className="welcome">
                 <div className="welcome-emoji"><i className="ti ti-palette" aria-hidden="true"></i></div>
@@ -841,6 +888,7 @@ export function LearnView(props: LearnViewProps) {
           <div className="composer">
             <div className="composer-box">
               <textarea
+                ref={composerRef}
                 value={input}
                 placeholder={
                   !model
@@ -976,11 +1024,19 @@ function avgLevel(skills: { level: number }[]): number {
 }
 
 function friendlyError(e: unknown): string {
+  if (e instanceof ApiError) {
+    if (e.status === 401 || e.status === 403) return "API Key 无效或没有权限。请家长到「系统设置 → 模型厂商」检查密钥和模型是否已开通。";
+    if (e.status === 429) return "请求太频繁或额度不足。请稍后再试，或在下方切换另一个模型。";
+    if (e.status && e.status >= 500) return "模型服务暂时不可用。请稍后重试，或切换另一个模型。";
+  }
+  if (e instanceof TypeError) return "网络连接失败。请检查网络或代理设置后重试。";
   const msg = e instanceof Error ? e.message : "未知错误";
   return `这个模型暂时连不上或出了问题：${msg}\n\n可以试试：在下方切换别的模型，或请家长到「系统设置」里测试一下连接。`;
 }
 
 function fmtDate(ts: number): string {
   const d = new Date(ts);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+  const now = new Date();
+  const monthDay = `${d.getMonth() + 1}/${d.getDate()}`;
+  return d.getFullYear() === now.getFullYear() ? monthDay : `${d.getFullYear()}/${monthDay}`;
 }

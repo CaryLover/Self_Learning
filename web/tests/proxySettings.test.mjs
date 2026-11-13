@@ -12,8 +12,12 @@ try {
   await writeFile(outfile, bundle.outputFiles[0].contents);
   const storage = new Map();
   globalThis.localStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
-  const { loadSettings, saveSettings, DEFAULT_PROXY_URL } = await import(pathToFileURL(outfile).href);
+  const { loadSettings, saveSettings, loadUiPrefs, saveUiPrefs, DEFAULT_PROXY_URL } = await import(pathToFileURL(outfile).href);
   assert.equal(loadSettings().proxyUrl, DEFAULT_PROXY_URL);
+  storage.set('zxz.ui.v1', JSON.stringify({ grade: 'college', mode: 'unknown' }));
+  assert.deepEqual(loadUiPrefs(), { grade: 'primary', mode: 'eli5' });
+  storage.set('zxz.ui.v1', JSON.stringify({ grade: 'senior', mode: 'socratic' }));
+  assert.deepEqual(loadUiPrefs(), { grade: 'senior', mode: 'socratic' });
   saveSettings({ ...loadSettings(), proxyUrl: '', proxyExplicit: true });
   assert.equal(loadSettings().proxyUrl, '');
   saveSettings({ ...loadSettings(), proxyUrl: 'http://127.0.0.1:8787', proxyExplicit: true });
@@ -22,6 +26,11 @@ try {
   delete old.proxyExplicit;
   saveSettings(old);
   assert.equal(loadSettings().proxyUrl, DEFAULT_PROXY_URL);
+  assert.equal(saveSettings(loadSettings()), true);
+  assert.equal(saveUiPrefs({ grade: 'primary', mode: 'eli5' }), true);
+  globalThis.localStorage = { getItem: () => null, setItem: () => { throw new Error('storage blocked'); }, removeItem: () => {} };
+  assert.equal(saveSettings(loadSettings()), false);
+  assert.equal(saveUiPrefs({ grade: 'junior', mode: 'eli5' }), false);
   console.log('proxy settings checks passed');
 } finally {
   await unlink(outfile).catch(() => {});

@@ -72,19 +72,19 @@ export async function preparePhysicsLesson(options: {
   let practices: PracticeItem[];
   switch (model.kind) {
     case "person-board-rest":
-      html = composePersonBoard(model, rendered.result as PersonBoardResult);
+      html = composePersonBoard(model, rendered.result as PersonBoardResult, options.topic);
       practices = personBoardPractices(model, rendered.result as PersonBoardResult);
       break;
     case "hanging-at-rest":
-      html = composeHangingLesson(model, rendered.result, rendered.svg);
+      html = composeHangingLesson(model, rendered.result, rendered.svg, options.topic);
       practices = buildHangingPractices(model, rendered.result);
       break;
     case "resistive-circuit":
-      html = composeCircuitLesson(model, rendered.result, rendered.svg);
+      html = composeCircuitLesson(model, rendered.result, rendered.svg, options.topic);
       practices = buildCircuitPractices(model, rendered.result);
       break;
     case "smooth-incline":
-      html = composeInclineLesson(model, rendered.result, rendered.svg);
+      html = composeInclineLesson(model, rendered.result, rendered.svg, options.topic);
       practices = buildInclinePractices(model, rendered.result);
       break;
     default: {

@@ -47,7 +47,7 @@ try {
   }
   assert.match(lesson.html, /整体内部/);
   assert.equal(lesson.practices.length, 3);
-  const saved = JSON.parse(JSON.stringify({ stage: 'error', html: lesson.html, retryPhysicsExplanation: true, pendingPhysicsPractices: lesson.practices, physicsPreview: { status: 'candidate', modelVersion: 'person-board-static:1', model: lesson.model, result: lesson.result, assumptions: lesson.assumptions, evidence: lesson.evidence } }));
+  const saved = JSON.parse(JSON.stringify({ stage: 'error', topic: question, html: lesson.html, retryPhysicsExplanation: true, pendingPhysicsPractices: lesson.practices, physicsPreview: { status: 'candidate', modelVersion: 'person-board-static:1', model: lesson.model, result: lesson.result, assumptions: lesson.assumptions, evidence: lesson.evidence } }));
   assert.deepEqual(restorePhysicsCandidate(saved), lesson);
   assert.equal(restorePhysicsCandidate({ ...saved, physicsPreview: { ...saved.physicsPreview, modelVersion: 'typed-physics:0.3.0' } }), null);
   assert.match(lesson.practices[1].question, /人质量 30 kg/);

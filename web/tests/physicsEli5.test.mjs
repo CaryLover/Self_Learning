@@ -13,11 +13,13 @@ try {
   const { addEli5PhysicsExplanation, restorePhysicsCandidate, finishPhysicsWithoutExplanation, recoverSession, composeInclineLesson, buildInclinePractices } = await import(pathToFileURL(outfile).href);
   const model = { kind: 'smooth-incline', objectName: 'A', massKg: { value: 2, source: 'stated' }, angleDeg: { value: 30, source: 'stated' }, gravity: { value: 10, source: 'stated' }, surface: { value: 'fixed-smooth', source: 'stated' }, extraForces: { value: 'none', source: 'stated' }, requested: ['forces', 'normal', 'acceleration'] };
   const physicalResult = { status: 'solved', model: 'single-contact-body', normal: 20 * Math.cos(Math.PI / 6), acceleration: 5, forces: [{ role: 'weight', direction: [0, -1] }, { role: 'normal', direction: [-0.5, Math.cos(Math.PI / 6)] }] };
-  const fixed = composeInclineLesson(model, physicalResult, '<svg><path d="M1 2"/></svg>');
+  const topic = '物块在光滑斜面上';
+  const fixed = composeInclineLesson(model, physicalResult, '<svg><path d="M1 2"/></svg>', topic);
+  assert.match(fixed, /题目：.*物块在光滑斜面上/);
   const candidate = { status: 'candidate', html: fixed, model, result: physicalResult, assumptions: [], evidence: {}, practices: buildInclinePractices(model, physicalResult) };
   const modelReply = JSON.stringify({ status: 'ok', intro: '先观察研究对象。', steps: ['找到重力方向。', '再看斜面的支持力。'], summary: '<script>坏内容</script>' });
   let captured;
-  const options = { candidate, topic: '物块在光滑斜面上', grade: 'senior', ctx: {}, signal: new AbortController().signal, call: async messages => { captured = messages; return modelReply; } };
+  const options = { candidate, topic, grade: 'senior', ctx: {}, signal: new AbortController().signal, call: async messages => { captured = messages; return modelReply; } };
   const result = await addEli5PhysicsExplanation(options);
   assert.match(captured[0].content, /第一次接触/);
   assert.match(captured[0].content, /不能修改或省略条件/);
@@ -29,9 +31,11 @@ try {
   assert.ok(result.html.includes('&lt;script&gt;坏内容&lt;/script&gt;'));
   assert.ok(!result.html.includes('<script>'));
   assert.deepEqual(result.practices, candidate.practices);
-  const saved = JSON.parse(JSON.stringify({ stage: 'error', html: candidate.html, retryPhysicsExplanation: true, pendingPhysicsPractices: candidate.practices, physicsPreview: { status: 'candidate', modelVersion: 'typed-physics:0.3.0', model: candidate.model, result: candidate.result, evidence: candidate.evidence, assumptions: candidate.assumptions } }));
+  const saved = JSON.parse(JSON.stringify({ stage: 'error', topic, html: candidate.html, retryPhysicsExplanation: true, pendingPhysicsPractices: candidate.practices, physicsPreview: { status: 'candidate', modelVersion: 'typed-physics:0.3.0', model: candidate.model, result: candidate.result, evidence: candidate.evidence, assumptions: candidate.assumptions } }));
   const restored = restorePhysicsCandidate(saved);
   assert.deepEqual(restored, candidate);
+  const prefixedSaved = { ...saved, topic: `【物理测试】${topic}` };
+  assert.deepEqual(restorePhysicsCandidate(prefixedSaved)?.html, candidate.html);
   const skipped = finishPhysicsWithoutExplanation(saved);
   assert.equal(skipped.stage, 'done');
   assert.equal(skipped.html, candidate.html);

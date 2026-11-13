@@ -1,6 +1,7 @@
 /** 会话持久化：IndexedDB（刷新/关闭浏览器后可续学） */
 
 import type { Session } from "./types";
+import { normalizeSession } from "./sessionData";
 
 const DB_NAME = "zixue-xiaozhan";
 const DB_VERSION = 1;
@@ -39,12 +40,16 @@ function tx<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBReque
 }
 
 export async function listSessions(): Promise<Session[]> {
-  const all = await tx<Session[]>("readonly", (s) => s.getAll() as IDBRequest<Session[]>);
-  return all.sort((a, b) => b.updatedAt - a.updatedAt);
+  const all = await tx<unknown[]>("readonly", (s) => s.getAll() as IDBRequest<unknown[]>);
+  return all
+    .map(normalizeSession)
+    .filter((session): session is Session => session !== null)
+    .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export function getSession(id: string): Promise<Session | undefined> {
-  return tx<Session | undefined>("readonly", (s) => s.get(id) as IDBRequest<Session | undefined>);
+export async function getSession(id: string): Promise<Session | undefined> {
+  const raw = await tx<unknown>("readonly", (s) => s.get(id) as IDBRequest<unknown>);
+  return normalizeSession(raw) ?? undefined;
 }
 
 export function putSession(session: Session): Promise<IDBValidKey> {
