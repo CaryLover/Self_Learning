@@ -22,3 +22,10 @@ gui-test-screenshots/
 
 eval-results/
 dev/physics-preview-build/
+
+# 内部工作文档：只在本地维护，不推送到公共仓库
+handoff.md
+ELI5与物理融合修改计划.md
+自学小站-v1.0开发计划.md
+docs/acceptance-checklist.md
+local-docs/
