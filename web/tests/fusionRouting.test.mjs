@@ -39,10 +39,10 @@ try {
 
   const heat = await preparePhysicsLesson({ ...options, topic: '请解释热传导' });
   assert.equal(heat.status, 'unsupported');
-  await runEli5Pipeline({ grade: 'senior', topic: '请解释热传导', images: [], textOnly: true, ctx: {}, signal, call, update: next => { state = next; } });
+  // unsupported 走完整 ELI5（含图形），不再强制纯文字。
+  await runEli5Pipeline({ grade: 'senior', topic: '请解释热传导', images: [], ctx: {}, signal, call, update: next => { state = next; } });
   assert.equal(state.stage, 'done');
-  assert.match(state.html, /热传导/);
-  assert.doesNotMatch(state.html, /<svg|<img|<canvas/i);
+  assert.match(state.html, /<svg/);
   assert.equal(renders, 0);
 
   const ambiguous = await preparePhysicsLesson({ ...options, topic: '一个物块沿斜面下滑，求它受到的力。' });
@@ -59,7 +59,7 @@ try {
   assert.match(lesson.html, /33\.98 N/);
   const summary = await (await fetch(`${address}/__last-prompt`)).json();
   const kinds = summary.recentRequests.map(request => request.kind);
-  assert.deepEqual(kinds, ['physics-extraction', 'eli5', 'practice', 'physics-extraction', 'eli5-text', 'practice', 'physics-extraction', 'physics-extraction', 'physics-eli5']);
+  assert.deepEqual(kinds, ['physics-extraction', 'eli5', 'practice', 'physics-extraction', 'eli5', 'practice', 'physics-extraction', 'physics-extraction', 'physics-eli5']);
   assert.ok(summary.recentRequests.every(request => request.viaProxy));
   for (const topic of ['解释植物的光合作用', '用图说明诗歌比喻', '解释二次函数的图像']) {
     const routed = await preparePhysicsLesson({ ...options, topic });

@@ -323,7 +323,6 @@ export function LearnView(props: LearnViewProps) {
       const explicitPhysics = topic.startsWith("【物理测试】");
       const autoPhysics = __PHYSICS_PREVIEW__ && !explicitPhysics && s.grade !== "primary" && images.length === 0;
       let physicsUnverified = __PHYSICS_PREVIEW__ && !explicitPhysics && !autoPhysics;
-      let physicsTextOnly = false;
       if ((import.meta.env.DEV || __PHYSICS_PREVIEW__) && (explicitPhysics || autoPhysics)) {
         if (explicitPhysics && s.grade !== "senior") {
           commit({ ...s, eli5: { ...s.eli5!, stage: "error", error: "物理测试原型暂时只支持高中学段。初中请去掉开头的【物理测试】后重新发送，让预览分流自动判断。" } });
@@ -354,8 +353,9 @@ export function LearnView(props: LearnViewProps) {
           return;
         }
         if (candidate.status === "not_applicable" || candidate.status === "unsupported") {
+          // 工具明确判定不支持（如滑轮）时走完整 ELI5 讲解：主题清楚，图形风险与普通学科讲解相同；
+          // 页面持续标注“未经物理工具核验”。待复核（条件不明）仍走下方受控的复核/文字退路。
           physicsUnverified = true;
-          physicsTextOnly = candidate.status === "unsupported";
         } else if (candidate.status === "needs_review") {
           // 复核不是终点：保留重试入口；自动分流时再提供明确标注的未核验文字退路。
           s = { ...s, eli5: { ...s.eli5!, stage: "error", retryLesson: true, unverifiedFallback: autoPhysics, error: `${autoPhysics ? "物理工具无法自动核对这道题" : "物理测试需要复核"}：${candidate.reason}` } };
@@ -373,9 +373,9 @@ export function LearnView(props: LearnViewProps) {
         }
       }
       await runEli5Pipeline({
-        grade: s.grade, topic, images, ctx: pctx, signal: ac.signal, textOnly: physicsTextOnly,
+        grade: s.grade, topic, images, ctx: pctx, signal: ac.signal,
         call: (messages, signal) => call(messages, false, signal),
-        update: (eli5) => { s = { ...s, eli5: physicsUnverified ? { ...eli5, physicsUnverified: true, physicsTextOnly } : eli5 }; commit(s); },
+        update: (eli5) => { s = { ...s, eli5: physicsUnverified ? { ...eli5, physicsUnverified: true } : eli5 }; commit(s); },
       });
     } catch (e) {
       const error = ac.signal.aborted ? (timedOut ? "生成超时，请重试或换个模型。" : "已停止生成。") : friendlyError(e);
@@ -407,8 +407,9 @@ export function LearnView(props: LearnViewProps) {
   }
 
   /**
-   * 物理条件无法核对时，使用者可以主动退到普通讲解。
-   * 这里只使用文字讲解：不展示未经核对的物理图和受力分析，并保留“未核验”提示。
+   * 物理条件无法核对（待复核）时，使用者可以主动退到讲解。
+   * 这里仍只使用文字讲解：待复核可能是本可支持的题型但证据核对失败，
+   * 展示未经核对的受力图风险更高；保留“未核验”提示。
    */
   async function continueEli5Unverified(): Promise<void> {
     const initial = current?.eli5;
